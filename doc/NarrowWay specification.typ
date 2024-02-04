@@ -41,7 +41,7 @@ b_4, b_5, b_6, b_7;
 b_8, b_9, b_10, b_11;
 b_12, b_13, b_14, b_15;
 b_16, b_17, b_18, b_19;
-b_20, b_21, b_22, b_23) $, caption: [4x6 matrix for NarrowWay-192])
+b_20, b_21, b_22, b_23) $, caption: [6x4 matrix for NarrowWay-192])
 
 #figure(
 $ M = mat(b_0, b_1, b_2, b_3;
@@ -51,7 +51,7 @@ b_12, b_13, b_14, b_15;
 b_16, b_17, b_18, b_19;
 b_20, b_21, b_22, b_23;
 b_24, b_25, b_26, b_27;
-b_28, b_29, b_30, b_31) $, caption: [4x8 matrix for NarrowWay-256])
+b_28, b_29, b_30, b_31) $, caption: [8x4 matrix for NarrowWay-256])
 
 == Function F
 Function $F$ is the core encryption function in NarrowWay, it receives 4 bytes input ($P_0$, $P_1$, $P_2$ and $P_3$) and 4 bytes key ($K_0$, $K_1$, $K_2$ and $K_3$) and then returns 4 bytes encrypted data ($C_0$, $C_1$, $C_2$ and $C_3$).
@@ -122,31 +122,31 @@ Function $F$ is the core encryption function in NarrowWay, it receives 4 bytes i
 
 *Xor operation*
 
-$ P_1 = P_0 xor P_1 $
-$ P_2 = P_1 xor P_2 $
-$ P_3 = P_2 xor P_3 $
-$ P_0 = K_0 xor P_3 $
+$ P_1 := P_0 xor P_1 $
+$ P_2 := P_1 xor P_2 $
+$ P_3 := P_2 xor P_3 $
+$ P_0 := K_0 xor P_3 $
 
 *Apply key*
 
-$ P_0 = P_0 xor K_0 $
-$ P_1 = P_1 xor K_1 $
-$ P_2 = P_2 xor K_2 $
-$ P_3 = P_3 xor K_3 $
+$ P_0 := P_0 xor K_0 $
+$ P_1 := P_1 xor K_1 $
+$ P_2 := P_2 xor K_2 $
+$ P_3 := P_3 xor K_3 $
 
 *Bit shift*
 
-$ P_0 = P_0 >>> 1 $
-$ P_1 = P_1 >>> 2 $
-$ P_2 = P_2 >>> 3 $
-$ P_3 = P_3 >>> 4 $
+$ P_0 := P_0 >>> 1 $
+$ P_1 := P_1 >>> 2 $
+$ P_2 := P_2 >>> 3 $
+$ P_3 := P_3 >>> 4 $
 
 *Output*
 
-$ C_0 = P_2 $
-$ C_1 = P_3 $
-$ C_2 = P_0 $
-$ C_3 = P_1 $
+$ C_0 := P_2 $
+$ C_1 := P_3 $
+$ C_2 := P_0 $
+$ C_3 := P_1 $
 
 == S-Box
 In NarrowWay, each round has its own round-key-based S-Box, which is generated over $op("GF")(2^8)$ by the round key dynamically.
@@ -159,7 +159,7 @@ Calculate every byte's multiple inverse of the S-Box:
 
 $ f(x) dot f^(-1)(x) eq.triple 1 (mod m(x)) $
 
-$ S = mat(0, 1, 2, ..., 255;
+$ S_0 = mat(0, 1, 2, ..., 255;
 0^(-1), 1^(-1), 2^(-1), ..., 255^(-1); delim: "(") $
 
 *Bits substitute*
@@ -179,11 +179,11 @@ xor mat(c_0; c_1; c_2; c_3; c_4; c_5; c_6; c_7) $
 
 In other words:
 
-$ B = (b_7, b_6, b_5, b_4, b_3, b_2, b_1, b_0) $
+$ B_i = (b_7, b_6, b_5, b_4, b_3, b_2, b_1, b_0) $
 $ C = (c_7, c_6, c_5, c_4, c_3, c_2, c_1, c_0) $
 $ b_i^' = b_i xor b_(2 + i mod 8) xor b_(4 + i mod 8) xor b_(6 + i mod 8) xor b_(7 + i mod 8) xor c_i $
 
-In which $B$ is any byte in the S-Box, and $C$ is a key based byte in order to generate different S-Boxes for each round.
+In which $B_i$ is any byte in the S-Box ($S(i)$), and $C$ is a key based byte in order to generate different S-Boxes for each round.
 
 For generating $C$, we can digest a special byte in a round key ($R$) to use in generating S-Box like this:
 

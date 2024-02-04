@@ -1,3 +1,5 @@
+mod exports;
+
 const ROUND_128: usize = 16;
 const ROUND_192: usize = 18;
 const ROUND_256: usize = 20;
@@ -663,4 +665,19 @@ impl Cipher256 {
 
         mat.dump()
     }
+}
+
+#[test]
+fn test() {
+    let cipher = Cipher128::new([0; 16]);
+
+    let mut msg = [0; 16];
+
+    msg[..5].copy_from_slice(b"TEST1");
+    println!("{:?}", cipher.encrypt(msg));
+    println!("{:?}", cipher.decrypt(cipher.encrypt(msg)));
+
+    msg[..5].copy_from_slice(b"TEST2");
+    println!("{:?}", cipher.encrypt(msg));
+    println!("{}", gf_mul(114, 114, GF28_M));
 }
