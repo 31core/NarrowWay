@@ -8,7 +8,9 @@
 #align(center, [31core \
 #link("31core@tutanota.com")])
 
-#align(center, [*Caution*: This algorithm is not verified yet. Use at your own risk.])
+#align(center, [*Caution*: This algorithm is not verified and not formed as the final standard yet.
+
+Use at your own risk.])
 
 #outline()
 
@@ -17,14 +19,14 @@
 = Introduction
 NarrowWay is a symmetric cipher based on Substitution-Permutation Network, with fixed block size of 128, 192 and 256 bits blocks.
 
-Here are the rounds of each key size:
+The number of rounds for each key size is:
 - 16 rounds for 128 bits
 - 18 rounds for 192 bits
 - 20 rounds for 256 bits
 
 It is designed with the following goals:
 - High performance
-- Security
+- Strong security
 
 = Structure
 NarrowWay-128 puts 16 bytes data and key into a 4x4 matrix and perform calculations on it. For 192 and 256 bit blocks, the matrix shapes are 4x6 and 4x8.
@@ -54,7 +56,7 @@ b_24, b_25, b_26, b_27;
 b_28, b_29, b_30, b_31) $, caption: [8x4 matrix for NarrowWay-256])
 
 == Function F
-Function $F$ is the core encryption function in NarrowWay, it receives 4 bytes input ($P_0$, $P_1$, $P_2$ and $P_3$) and 4 bytes key ($K_0$, $K_1$, $K_2$ and $K_3$) and then returns 4 bytes encrypted data ($C_0$, $C_1$, $C_2$ and $C_3$).
+Function $F$ is the core encryption function in NarrowWay, it takes 4 bytes plaintext ($P_0$, $P_1$, $P_2$ and $P_3$) and 4 bytes key ($K_0$, $K_1$, $K_2$ and $K_3$) as input, and then outputs 4 bytes encrypted data ($C_0$, $C_1$, $C_2$ and $C_3$).
 
 #figure(
 [#fletcher.diagram(
@@ -177,20 +179,20 @@ $ S(i) = mat(1, 0, 1, 0, 1, 0, 1, 1;
 times mat(b_0; b_1; b_2; b_3; b_4; b_5; b_6; b_7)
 xor mat(c_0; c_1; c_2; c_3; c_4; c_5; c_6; c_7) $
 
-In other words:
+In other words, the matrix operation can be expressed as:
 
 $ B_i = (b_7, b_6, b_5, b_4, b_3, b_2, b_1, b_0) $
 $ C = (c_7, c_6, c_5, c_4, c_3, c_2, c_1, c_0) $
 $ b_i^' = b_i xor b_(2 + i mod 8) xor b_(4 + i mod 8) xor b_(6 + i mod 8) xor b_(7 + i mod 8) xor c_i $
 
-In which $B_i$ is any byte in the S-Box ($S(i)$), and $C$ is a key based byte in order to generate different S-Boxes for each round.
+Where $B_i$ is any byte in the S-Box ($S(i)$), and $C$ is a key based byte in order to generate different S-Boxes for each round.
 
 For generating $C$, we can digest a special byte in a round key ($R$) to use in generating S-Box like this:
 
-$ c = R_0 xor R_1 xor R_2 xor ... R_15 $
+$ C = max(R_0 xor R_1 xor R_2 xor ... R_15, 1) $
 
 == Round key
-Before generate round keys, we define a round constant ($"RC"$) changed by round count.
+Before generate round keys, we define a round constant ($"RC"$) changed by round count over $op("GF")(2^8)$.
 
 $ op("RC")[i] = 2^(i + 2) $
 
@@ -200,12 +202,14 @@ $ R_0 = op("RC")[r] xor (K_0 <<< 4)^(-1) (r = 0, 1, 2, ...) $
 
 $ R_i = R_(i - 1) xor (K_i <<< 4)^(-1) (i = 1, 2, ...) $
 
+Where $K$ is the previous round key, and $R$ is the current round key. And when $R$ is the first round key, the $K$ is the primary key.
+
 == Round
-A round conatains these following 3 steps:
+An integral round for encryption conatains these following 3 steps:
 
 - Mix columns
 - Sub bytes
-- Apply key
+- Apply round key
 
 *Mix columns*
 
@@ -225,7 +229,7 @@ b_(4,1), b_(3,2), b_(2,3), b_(1,4);)
 
 *Sub bytes*
 
-Use the round S-Box to replace bytes in the matrix.
+Substitute bytes in the matrix using the round S-Box.
 
 $ M_(i, j)^' = S(M_(i, j)) $
 

@@ -152,6 +152,7 @@ fn bit_transform(b: u8, c: u8) -> u8 {
     b ^ c
 }
 
+/** Calculate the round constant */
 fn rc(i: usize) -> u8 {
     let mut byte = 2;
     for _ in 0..(i + 2) {
@@ -374,36 +375,38 @@ fn sub_bytes_inv_256(s_inv: &SBox, mat: &mut Matrix256) {
     }
 }
 
-fn shl(mut num: u8, offset: u32) -> u8 {
-    let loss = num.wrapping_shr(8 - offset);
-    num <<= offset;
-    num |= loss;
-    num
+fn shl(num: u8, offset: u32) -> u8 {
+    num.wrapping_shr(8 - offset) | (num << offset)
 }
 
-fn shr(mut num: u8, offset: u32) -> u8 {
-    let loss = num.wrapping_shl(8 - offset);
-    num >>= offset;
-    num |= loss;
-    num
+fn shr(num: u8, offset: u32) -> u8 {
+    num.wrapping_shl(8 - offset) | (num >> offset)
 }
 
 fn func_f(p_0: u8, p_1: u8, p_2: u8, p_3: u8, key: [u8; 4]) -> (u8, u8, u8, u8) {
+    /* XOR operation */
     let p_1 = p_0 ^ p_1;
     let p_2 = p_1 ^ p_2;
     let p_3 = p_2 ^ p_3;
     let p_0 = p_0 ^ p_3;
 
+    /* Apply key */
     let (c_0, c_1, c_2, c_3) = (p_0 ^ key[0], p_1 ^ key[1], p_2 ^ key[2], p_3 ^ key[3]);
+
+    /* Bit shift */
     let (c_0, c_1, c_2, c_3) = (shr(c_0, 1), shr(c_1, 2), shr(c_2, 3), shr(c_3, 4));
 
     (c_2, c_3, c_0, c_1)
 }
 
 fn func_f_inv(c_2: u8, c_3: u8, c_0: u8, c_1: u8, key: [u8; 4]) -> (u8, u8, u8, u8) {
+    /*  XOR operation inverse */
     let (c_0, c_1, c_2, c_3) = (shl(c_0, 1), shl(c_1, 2), shl(c_2, 3), shl(c_3, 4));
+
+    /* Apply key inverse */
     let (p_0, p_1, p_2, p_3) = (c_0 ^ key[0], c_1 ^ key[1], c_2 ^ key[2], c_3 ^ key[3]);
 
+    /* XOR operation inverse */
     let p_0 = p_0 ^ p_3;
     let p_3 = p_3 ^ p_2;
     let p_2 = p_2 ^ p_1;
@@ -499,7 +502,7 @@ impl Cipher128 {
                 byte ^= *i;
             }
 
-            byte
+            std::cmp::max(byte, 1)
         }
         let mut s_boxes = [[0; 256]; ROUND_128];
         let mut s_inves = [[0; 256]; ROUND_128];
@@ -560,7 +563,7 @@ impl Cipher192 {
                 byte ^= *i;
             }
 
-            byte
+            std::cmp::max(byte, 1)
         }
         let mut s_boxes = [[0; 256]; ROUND_192];
         let mut s_inves = [[0; 256]; ROUND_192];
@@ -621,7 +624,7 @@ impl Cipher256 {
                 byte ^= *i;
             }
 
-            byte
+            std::cmp::max(byte, 1)
         }
         let mut s_boxes = [[0; 256]; ROUND_256];
         let mut s_inves = [[0; 256]; ROUND_256];
