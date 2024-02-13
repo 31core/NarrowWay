@@ -156,7 +156,7 @@ fn bit_transform(b: u8, c: u8) -> u8 {
 fn rc(i: usize) -> u8 {
     let mut byte = 2;
     for _ in 0..(i + 2) {
-        byte = gf_mul(byte, byte, GF28_M);
+        byte = gf_mul(byte, 2, GF28_M);
     }
 
     byte
@@ -385,32 +385,34 @@ fn shr(num: u8, offset: u32) -> u8 {
 
 fn func_f(p_0: u8, p_1: u8, p_2: u8, p_3: u8, key: [u8; 4]) -> (u8, u8, u8, u8) {
     /* XOR operation */
-    let p_1 = p_0 ^ p_1;
-    let p_2 = p_1 ^ p_2;
-    let p_3 = p_2 ^ p_3;
-    let p_0 = p_0 ^ p_3;
+    let p_1 = p_0 ^ p_1 ^ p_2;
+    let p_0 = shl(p_0, 1);
+    let p_2 = p_1 ^ p_2 ^ p_3;
+    let p_1 = shr(p_1, 2);
+    let p_3 = shr(p_3, 2);
+    let p_3 = p_3 ^ p_2;
+    let p_0 = p_0 ^ p_1;
+    let p_2 = shr(p_2, 1);
 
     /* Apply key */
     let (c_0, c_1, c_2, c_3) = (p_0 ^ key[0], p_1 ^ key[1], p_2 ^ key[2], p_3 ^ key[3]);
-
-    /* Bit shift */
-    let (c_0, c_1, c_2, c_3) = (shr(c_0, 1), shr(c_1, 2), shr(c_2, 3), shr(c_3, 4));
 
     (c_2, c_3, c_0, c_1)
 }
 
 fn func_f_inv(c_2: u8, c_3: u8, c_0: u8, c_1: u8, key: [u8; 4]) -> (u8, u8, u8, u8) {
-    /*  XOR operation inverse */
-    let (c_0, c_1, c_2, c_3) = (shl(c_0, 1), shl(c_1, 2), shl(c_2, 3), shl(c_3, 4));
-
     /* Apply key inverse */
     let (p_0, p_1, p_2, p_3) = (c_0 ^ key[0], c_1 ^ key[1], c_2 ^ key[2], c_3 ^ key[3]);
 
-    /* XOR operation inverse */
-    let p_0 = p_0 ^ p_3;
+    /* Confuse inverse */
+    let p_2 = shl(p_2, 1);
+    let p_0 = p_0 ^ p_1;
     let p_3 = p_3 ^ p_2;
-    let p_2 = p_2 ^ p_1;
-    let p_1 = p_1 ^ p_0;
+    let p_3 = shl(p_3, 2);
+    let p_1 = shl(p_1, 2);
+    let p_2 = p_1 ^ p_2 ^ p_3;
+    let p_0 = shr(p_0, 1);
+    let p_1 = p_0 ^ p_1 ^ p_2;
 
     (p_0, p_1, p_2, p_3)
 }
@@ -487,6 +489,7 @@ fn apply_round_inv_256(mat: &mut Matrix256, key: &Key256) {
     }
 }
 
+#[derive(Debug)]
 pub struct Cipher128 {
     s_boxes: [SBox; ROUND_128],
     s_inves: [SBox; ROUND_128],
@@ -548,6 +551,7 @@ impl Cipher128 {
     }
 }
 
+#[derive(Debug)]
 pub struct Cipher192 {
     s_boxes: [SBox; ROUND_192],
     s_inves: [SBox; ROUND_192],
@@ -609,6 +613,7 @@ impl Cipher192 {
     }
 }
 
+#[derive(Debug)]
 pub struct Cipher256 {
     s_boxes: [SBox; ROUND_256],
     s_inves: [SBox; ROUND_256],
@@ -668,19 +673,4 @@ impl Cipher256 {
 
         mat.dump()
     }
-}
-
-#[test]
-fn test() {
-    let cipher = Cipher128::new([0; 16]);
-
-    let mut msg = [0; 16];
-
-    msg[..5].copy_from_slice(b"TEST1");
-    println!("{:?}", cipher.encrypt(msg));
-    println!("{:?}", cipher.decrypt(cipher.encrypt(msg)));
-
-    msg[..5].copy_from_slice(b"TEST2");
-    println!("{:?}", cipher.encrypt(msg));
-    println!("{}", gf_mul(114, 114, GF28_M));
 }

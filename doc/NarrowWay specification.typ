@@ -17,7 +17,7 @@ Use at your own risk.])
 #set heading(numbering: "1.")
 
 = Introduction
-NarrowWay is a symmetric cipher based on Substitution-Permutation Network, with fixed block size of 128, 192 and 256 bits blocks.
+NarrowWay is a symmetric cipher based on Substitution-Permutation Network, with fixed 128, 192 and 256 bits block size and 128, 192 and 256 bits key size.
 
 The number of rounds for each key size is:
 - 16 rounds for 128 bits
@@ -29,7 +29,7 @@ It is designed with the following goals:
 - Strong security
 
 = Structure
-NarrowWay-128 puts 16 bytes data and key into a 4x4 matrix and perform calculations on it. For 192 and 256 bit blocks, the matrix shapes are 4x6 and 4x8.
+NarrowWay-128 puts 16 bytes data and key into a 4x4 matrix and perform calculations on it. For 192 and 256 bit blocks, the matrix shapes are 6x4 and 8x4.
 
 #figure(
 $ M = mat(b_0, b_1, b_2, b_3;
@@ -65,27 +65,41 @@ Function $F$ is the core encryption function in NarrowWay, it takes 4 bytes plai
   node((2, 0), $P_2$),
   node((3, 0), $P_3$),
 
+  /* line 1 */
+  edge((0, 0), (0, -2), "-|>"),
+  edge((2, 0), (2, -2), "-|>"),
   edge((0, -1), (1, -1), "-|>"),
   edge((1, 0), (1, -1), "-|>"),
+  edge((2, -1), (1, -1), "-|>"),
+  edge((3, 0), (3, -1), "-|>"),
   node((1, -1), $xor$),
+  node((3, -1), $>>> 2$),
 
-  edge((1, -1), (1, -5), "-|>"),
+  /* line 2 */
+  edge((1, -1), (1, -3), "-|>"),
+  edge((3, -1), (3, -3), "-|>"),
   edge((1, -2), (2, -2), "-|>"),
-  edge((2, 0), (2, -2), "-|>"),
+  edge((3, -2), (2, -2), "-|>"),
+  edge((2, -3), (3, -3), "-|>"),
+  node((0, -2), $<<< 1$),
   node((2, -2), $xor$),
 
-  edge((2, -2), (2, -5), "-|>"),
-  edge((2, -3), (3, -3), "-|>"),
-  edge((3, 0), (3, -3), "-|>"),
+  /* line 3 */
+  node((1, -3), $>>> 2$),
   node((3, -3), $xor$),
 
-  edge((3, -3), (3, -5), "-|>"),
-  edge((3, -4), (0, -4), "-|>"),
-  edge((0, 0), (0, -4), "-|>"),
+  /* line 4 */
+  edge((0, -2), (0, -4), "-|>"),
+  edge((2, -2), (2, -4), "-|>"),
+  edge((1, -4), (0, -4), "-|>"),
   node((0, -4), $xor$),
+  node((2, -4), $>>> 1$),
 
   /* Apply key */
   edge((0, -4), (0, -5), "-|>"),
+  edge((1, -3), (1, -5), "-|>"),
+  edge((2, -4), (2, -5), "-|>"),
+  edge((3, -3), (3, -5), "-|>"),
   node((0, -5), $xor$),
   node((1, -5), $xor$),
   node((2, -5), $xor$),
@@ -101,14 +115,10 @@ Function $F$ is the core encryption function in NarrowWay, it takes 4 bytes plai
   edge((3.5, -5), (3, -5), "-|>"),
 
   /* Bit shift */
-  edge((0, -5), (0, -6), "-|>"),
-  node((0, -6), $>>> 1$),
-  edge((1, -5), (1, -6), "-|>"),
-  node((1, -6), $>>> 2$),
-  edge((2, -5), (2, -6), "-|>"),
-  node((2, -6), $>>> 3$),
-  edge((3, -5), (3, -6), "-|>"),
-  node((3, -6), $>>> 4$),
+  edge((0, -5), (0, -6)),
+  edge((1, -5), (1, -6)),
+  edge((2, -5), (2, -6)),
+  edge((3, -5), (3, -6)),
 
   /* Returns */
   edge((0, -6), (2, -7), "-|>"),
@@ -122,12 +132,16 @@ Function $F$ is the core encryption function in NarrowWay, it takes 4 bytes plai
 )]
 ,caption: [Function $F$])
 
-*Xor operation*
+*Confuse*
 
-$ P_1 := P_0 xor P_1 $
-$ P_2 := P_1 xor P_2 $
-$ P_3 := P_2 xor P_3 $
-$ P_0 := K_0 xor P_3 $
+$ P_1 := P_0 xor P_1 xor P_2 $
+$ P_0 := P_0 <<< 1 $
+$ P_2 := P_1 xor P_2 xor P_3 $
+$ P_1 := P_1 >>> 2 $
+$ P_3 := P_3 >>> 2 $
+$ P_3 := P_3 xor P_2 $
+$ P_0 := P_0 xor P_1 $
+$ P_2 := P_2 >>> 1 $
 
 *Apply key*
 
@@ -136,13 +150,6 @@ $ P_1 := P_1 xor K_1 $
 $ P_2 := P_2 xor K_2 $
 $ P_3 := P_3 xor K_3 $
 
-*Bit shift*
-
-$ P_0 := P_0 >>> 1 $
-$ P_1 := P_1 >>> 2 $
-$ P_2 := P_2 >>> 3 $
-$ P_3 := P_3 >>> 4 $
-
 *Output*
 
 $ C_0 := P_2 $
@@ -150,12 +157,15 @@ $ C_1 := P_3 $
 $ C_2 := P_0 $
 $ C_3 := P_1 $
 
-== S-Box
-In NarrowWay, each round has its own round-key-based S-Box, which is generated over $op("GF")(2^8)$ by the round key dynamically.
+== $op("GF")(2^8)$
+Addition and multiplication in NarrowWay are performed over $op("GF")(2^8)$.
 
 The primitive polynomial is:
 
 $ m(x) = x^8 + x^6 + x^5 + x^4 + 1 $
+
+== S-Box
+In NarrowWay, each round has its own key-dependent S-Box, which is generated over $op("GF")(2^8)$ by the round key dynamically.
 
 Calculate every byte's multiple inverse of the S-Box:
 
@@ -166,7 +176,7 @@ $ S_0 = mat(0, 1, 2, ..., 255;
 
 *Bits substitute*
 
-Permutate bits in $S(i)$ using the following formula:
+Permutate bits in $S_0(i)$ using the following formula:
 
 $ S(i) = mat(1, 0, 1, 0, 1, 0, 1, 1;
 1, 1, 0, 1, 0, 1, 0, 1;
@@ -185,7 +195,7 @@ $ B_i = (b_7, b_6, b_5, b_4, b_3, b_2, b_1, b_0) $
 $ C = (c_7, c_6, c_5, c_4, c_3, c_2, c_1, c_0) $
 $ b_i^' = b_i xor b_(2 + i mod 8) xor b_(4 + i mod 8) xor b_(6 + i mod 8) xor b_(7 + i mod 8) xor c_i $
 
-Where $B_i$ is any byte in the S-Box ($S(i)$), and $C$ is a key based byte in order to generate different S-Boxes for each round.
+Where $B_i$ is any byte in the S-Box ($S_0(i)$), and $C$ is a key based byte in order to generate different S-Boxes for each round.
 
 For generating $C$, we can digest a special byte in a round key ($R$) to use in generating S-Box like this:
 
