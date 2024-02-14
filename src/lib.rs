@@ -10,12 +10,15 @@ type SBox = [u8; 256];
 type Key128 = [u8; 16];
 type Key192 = [u8; 24];
 type Key256 = [u8; 32];
+type Block128 = [u8; 16];
+type Block192 = [u8; 24];
+type Block256 = [u8; 32];
 
 #[derive(Debug)]
 struct Matrix128([[u8; 4]; 4]);
 
 impl Matrix128 {
-    fn new(bytes: [u8; 16]) -> Self {
+    fn new(bytes: Block128) -> Self {
         let mut mat = Self([[0; 4]; 4]);
 
         for row in 0..4 {
@@ -25,7 +28,7 @@ impl Matrix128 {
         }
         mat
     }
-    fn dump(&self) -> [u8; 16] {
+    fn dump(&self) -> Block128 {
         let mut bytes = [0; 16];
 
         for row in 0..4 {
@@ -42,7 +45,7 @@ impl Matrix128 {
 struct Matrix192([[u8; 4]; 6]);
 
 impl Matrix192 {
-    fn new(bytes: [u8; 24]) -> Self {
+    fn new(bytes: Block192) -> Self {
         let mut mat = Self([[0; 4]; 6]);
 
         for row in 0..6 {
@@ -52,7 +55,7 @@ impl Matrix192 {
         }
         mat
     }
-    fn dump(&self) -> [u8; 24] {
+    fn dump(&self) -> Block192 {
         let mut bytes = [0; 24];
 
         for row in 0..6 {
@@ -69,7 +72,7 @@ impl Matrix192 {
 struct Matrix256([[u8; 4]; 8]);
 
 impl Matrix256 {
-    fn new(bytes: [u8; 32]) -> Self {
+    fn new(bytes: Block256) -> Self {
         let mut mat = Self([[0; 4]; 8]);
 
         for row in 0..8 {
@@ -79,7 +82,7 @@ impl Matrix256 {
         }
         mat
     }
-    fn dump(&self) -> [u8; 32] {
+    fn dump(&self) -> Block256 {
         let mut bytes = [0; 32];
 
         for row in 0..8 {
@@ -386,13 +389,14 @@ fn shr(num: u8, offset: u32) -> u8 {
 fn func_f(p_0: u8, p_1: u8, p_2: u8, p_3: u8, key: [u8; 4]) -> (u8, u8, u8, u8) {
     /* XOR operation */
     let p_1 = p_0 ^ p_1 ^ p_2;
-    let p_0 = shl(p_0, 1);
-    let p_2 = p_1 ^ p_2 ^ p_3;
+    let p_0 = shl(p_0, 2);
+    let p_2 = shr(p_1, 4) ^ p_2 ^ p_3;
     let p_1 = shr(p_1, 2);
     let p_3 = shr(p_3, 2);
-    let p_3 = p_3 ^ p_2;
+    let p_3 = p_3 ^ shl(p_2, 1);
     let p_0 = p_0 ^ p_1;
-    let p_2 = shr(p_2, 1);
+    let p_2 = shr(p_2, 3);
+    let p_3 = shl(p_3, 1);
 
     /* Apply key */
     let (c_0, c_1, c_2, c_3) = (p_0 ^ key[0], p_1 ^ key[1], p_2 ^ key[2], p_3 ^ key[3]);
@@ -405,13 +409,14 @@ fn func_f_inv(c_2: u8, c_3: u8, c_0: u8, c_1: u8, key: [u8; 4]) -> (u8, u8, u8, 
     let (p_0, p_1, p_2, p_3) = (c_0 ^ key[0], c_1 ^ key[1], c_2 ^ key[2], c_3 ^ key[3]);
 
     /* Confuse inverse */
-    let p_2 = shl(p_2, 1);
+    let p_3 = shr(p_3, 1);
+    let p_2 = shl(p_2, 3);
     let p_0 = p_0 ^ p_1;
-    let p_3 = p_3 ^ p_2;
+    let p_3 = p_3 ^ shl(p_2, 1);
     let p_3 = shl(p_3, 2);
     let p_1 = shl(p_1, 2);
-    let p_2 = p_1 ^ p_2 ^ p_3;
-    let p_0 = shr(p_0, 1);
+    let p_2 = shr(p_1, 4) ^ p_2 ^ p_3;
+    let p_0 = shr(p_0, 2);
     let p_1 = p_0 ^ p_1 ^ p_2;
 
     (p_0, p_1, p_2, p_3)
@@ -527,7 +532,7 @@ impl Cipher128 {
             round_keys,
         }
     }
-    pub fn encrypt(&self, block: [u8; 16]) -> [u8; 16] {
+    pub fn encrypt(&self, block: Block128) -> Block128 {
         let mut mat = Matrix128::new(block);
 
         for round in 0..ROUND_128 {
@@ -538,7 +543,7 @@ impl Cipher128 {
 
         mat.dump()
     }
-    pub fn decrypt(&self, block: [u8; 16]) -> [u8; 16] {
+    pub fn decrypt(&self, block: Block128) -> Block128 {
         let mut mat = Matrix128::new(block);
 
         for round in (0..ROUND_128).rev() {
@@ -589,7 +594,7 @@ impl Cipher192 {
             round_keys,
         }
     }
-    pub fn encrypt(&self, block: [u8; 24]) -> [u8; 24] {
+    pub fn encrypt(&self, block: Block192) -> Block192 {
         let mut mat = Matrix192::new(block);
 
         for round in 0..ROUND_192 {
@@ -600,7 +605,7 @@ impl Cipher192 {
 
         mat.dump()
     }
-    pub fn decrypt(&self, block: [u8; 24]) -> [u8; 24] {
+    pub fn decrypt(&self, block: Block192) -> Block192 {
         let mut mat = Matrix192::new(block);
 
         for round in (0..ROUND_192).rev() {
@@ -651,7 +656,7 @@ impl Cipher256 {
             round_keys,
         }
     }
-    pub fn encrypt(&self, block: [u8; 32]) -> [u8; 32] {
+    pub fn encrypt(&self, block: Block256) -> Block256 {
         let mut mat = Matrix256::new(block);
 
         for round in 0..ROUND_256 {
@@ -662,7 +667,7 @@ impl Cipher256 {
 
         mat.dump()
     }
-    pub fn decrypt(&self, block: [u8; 32]) -> [u8; 32] {
+    pub fn decrypt(&self, block: Block256) -> Block256 {
         let mut mat = Matrix256::new(block);
 
         for round in (0..ROUND_256).rev() {

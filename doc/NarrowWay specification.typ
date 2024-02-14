@@ -78,22 +78,26 @@ Function $F$ is the core encryption function in NarrowWay, it takes 4 bytes plai
   /* line 2 */
   edge((1, -1), (1, -3), "-|>"),
   edge((3, -1), (3, -3), "-|>"),
-  edge((1, -2), (2, -2), "-|>"),
+  edge((1, -2), (1.5, -2), "-|>"),
+  edge((1.5, -2), (2, -2), "-|>"),
   edge((3, -2), (2, -2), "-|>"),
-  edge((2, -3), (3, -3), "-|>"),
-  node((0, -2), $<<< 1$),
+  node((0, -2), $<<< 2$),
+  node((1.5, -2), $>>> 4$),
   node((2, -2), $xor$),
 
   /* line 3 */
   node((1, -3), $>>> 2$),
+  node((2.5, -3), $<<<1$),
   node((3, -3), $xor$),
+  edge((2, -3), (2.5, -3), "-|>"),
+  edge((2.5, -3), (3, -3), "-|>"),
 
   /* line 4 */
   edge((0, -2), (0, -4), "-|>"),
   edge((2, -2), (2, -4), "-|>"),
   edge((1, -4), (0, -4), "-|>"),
   node((0, -4), $xor$),
-  node((2, -4), $>>> 1$),
+  node((2, -4), $>>> 3$),
 
   /* Apply key */
   edge((0, -4), (0, -5), "-|>"),
@@ -135,13 +139,14 @@ Function $F$ is the core encryption function in NarrowWay, it takes 4 bytes plai
 *Confuse*
 
 $ P_1 := P_0 xor P_1 xor P_2 $
-$ P_0 := P_0 <<< 1 $
-$ P_2 := P_1 xor P_2 xor P_3 $
+$ P_0 := P_0 <<< 2 $
+$ P_2 := (P_1>>> 4) xor P_2 xor P_3 $
 $ P_1 := P_1 >>> 2 $
 $ P_3 := P_3 >>> 2 $
-$ P_3 := P_3 xor P_2 $
+$ P_3 := P_3 xor (P_2 <<< 1) $
 $ P_0 := P_0 xor P_1 $
-$ P_2 := P_2 >>> 1 $
+$ P_2 := P_2 >>> 3 $
+$ P_3 := P_3 <<< 1 $
 
 *Apply key*
 
