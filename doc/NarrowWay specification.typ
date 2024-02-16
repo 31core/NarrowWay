@@ -10,7 +10,7 @@
 
 #align(center, [*Caution*: This algorithm is not verified and not formed as the final standard yet.
 
-Use at your own risk.])
+Unsuitable for production use.])
 
 #outline()
 
@@ -29,7 +29,7 @@ It is designed with the following goals:
 - Strong security
 
 = Structure
-NarrowWay-128 puts 16 bytes data and key into a 4x4 matrix and perform calculations on it. For 192 and 256 bit blocks, the matrix shapes are 6x4 and 8x4.
+Take NarrowWay-128 for for example, put 16 bytes (from $b_0$ to $b_15$) plaintext and key into a 4x4 matrix. Encryption is to be performed on this matrix. As for 192 and 256 bit blocks, the matrix shapes are 6x4 and 8x4.
 
 #figure(
 $ M = mat(b_0, b_1, b_2, b_3;
@@ -140,13 +140,12 @@ Function $F$ is the core encryption function in NarrowWay, it takes 4 bytes plai
 
 $ P_1 := P_0 xor P_1 xor P_2 $
 $ P_0 := P_0 <<< 2 $
+$ P_3 := P_3 >>> 2 $
 $ P_2 := (P_1>>> 4) xor P_2 xor P_3 $
 $ P_1 := P_1 >>> 2 $
-$ P_3 := P_3 >>> 2 $
 $ P_3 := P_3 xor (P_2 <<< 1) $
 $ P_0 := P_0 xor P_1 $
 $ P_2 := P_2 >>> 3 $
-$ P_3 := P_3 <<< 1 $
 
 *Apply key*
 
@@ -161,6 +160,14 @@ $ C_0 := P_2 $
 $ C_1 := P_3 $
 $ C_2 := P_0 $
 $ C_3 := P_1 $
+
+The expanded form is:
+
+$ F(K_0, K_1, K_2, K_3) = $
+$ C_0 = P_2 xor (P_3>>> 2) xor ((P_0 xor P_1 xor P_2) >>> 4) >>> 3 xor K_2 $
+$ C_1 = (P_3>>> 2) xor (P_2 xor (P_3>>> 2) xor ((P_0 xor P_1 xor P_2) >>> 4) <<< 1) xor K_3 $
+$ C_2 = (P_0 <<< 2) xor ((P_0 xor P_1 xor P_2) >>> 2) xor K_0 $
+$ C_3 = (P_0 xor P_1 xor P_2) >>> 2 xor K_1 $
 
 == $op("GF")(2^8)$
 Addition and multiplication in NarrowWay are performed over $op("GF")(2^8)$.
@@ -207,6 +214,8 @@ For generating $C$, we can digest a special byte in a round key ($R$) to use in 
 $ C = max(R_0 xor R_1 xor R_2 xor ... R_15, 1) $
 
 == Round key
+Each round of NarrowWay has a unique round key, these round keys are expanded by the primary key.
+
 Before generate round keys, we define a round constant ($"RC"$) changed by round count over $op("GF")(2^8)$.
 
 $ op("RC")[i] = 2^(i + 2) $

@@ -95,7 +95,20 @@ impl Matrix256 {
     }
 }
 
-/** Multiple on GF(2^8) */
+/** Addition on GF(2^8) */
+fn gf_add(f: u8, g: u8) -> u8 {
+    f ^ g
+}
+
+/** Subtration on GF(2^8) */
+fn gf_sub(f: u8, g: u8) -> u8 {
+    gf_add(f, g)
+}
+
+/** Multiple on GF(2^8)
+ *
+ * Note: m is without x^8 nomial
+ */
 fn gf_mul(f: u8, g: u8, m: u8) -> u8 {
     let mut cache = Vec::new();
     for i in 0..8 {
@@ -105,7 +118,7 @@ fn gf_mul(f: u8, g: u8, m: u8) -> u8 {
                 /* the highest bit is 1 */
                 if j >> 7 == 1 {
                     j <<= 1;
-                    j ^= m;
+                    j = gf_sub(j, m);
                 } else {
                     j <<= 1;
                 }
@@ -116,7 +129,7 @@ fn gf_mul(f: u8, g: u8, m: u8) -> u8 {
 
     let mut result = 0;
     for i in cache {
-        result ^= i;
+        result = gf_add(result, i);
     }
     result
 }
@@ -390,13 +403,12 @@ fn func_f(p_0: u8, p_1: u8, p_2: u8, p_3: u8, key: [u8; 4]) -> (u8, u8, u8, u8) 
     /* XOR operation */
     let p_1 = p_0 ^ p_1 ^ p_2;
     let p_0 = shl(p_0, 2);
+    let p_3 = shr(p_3, 2);
     let p_2 = shr(p_1, 4) ^ p_2 ^ p_3;
     let p_1 = shr(p_1, 2);
-    let p_3 = shr(p_3, 2);
     let p_3 = p_3 ^ shl(p_2, 1);
     let p_0 = p_0 ^ p_1;
     let p_2 = shr(p_2, 3);
-    let p_3 = shl(p_3, 1);
 
     /* Apply key */
     let (c_0, c_1, c_2, c_3) = (p_0 ^ key[0], p_1 ^ key[1], p_2 ^ key[2], p_3 ^ key[3]);
@@ -409,13 +421,12 @@ fn func_f_inv(c_2: u8, c_3: u8, c_0: u8, c_1: u8, key: [u8; 4]) -> (u8, u8, u8, 
     let (p_0, p_1, p_2, p_3) = (c_0 ^ key[0], c_1 ^ key[1], c_2 ^ key[2], c_3 ^ key[3]);
 
     /* Confuse inverse */
-    let p_3 = shr(p_3, 1);
     let p_2 = shl(p_2, 3);
     let p_0 = p_0 ^ p_1;
     let p_3 = p_3 ^ shl(p_2, 1);
-    let p_3 = shl(p_3, 2);
     let p_1 = shl(p_1, 2);
     let p_2 = shr(p_1, 4) ^ p_2 ^ p_3;
+    let p_3 = shl(p_3, 2);
     let p_0 = shr(p_0, 2);
     let p_1 = p_0 ^ p_1 ^ p_2;
 
