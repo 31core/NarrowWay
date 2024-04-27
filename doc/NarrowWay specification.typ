@@ -179,7 +179,7 @@ $ m(x) = x^8 + x^6 + x^5 + x^4 + 1 $
 == S-Box
 In NarrowWay, each round has its own key-dependent S-Box, which is generated over $op("GF")(2^8)$ by the round key dynamically.
 
-Calculate every byte's multiple inverse of the S-Box:
+Calculate every byte's multiple inverse of the range from 0 to 255, then we can get the pre-S-Box ($S_0$):
 
 $ f(x) dot f^(-1)(x) eq.triple 1 (mod m(x)) $
 
@@ -207,13 +207,13 @@ $ B_i = (b_7, b_6, b_5, b_4, b_3, b_2, b_1, b_0) $
 $ C = (c_7, c_6, c_5, c_4, c_3, c_2, c_1, c_0) $
 $ b_i^' = b_i xor b_(2 + i mod 8) xor b_(4 + i mod 8) xor b_(6 + i mod 8) xor b_(7 + i mod 8) xor c_i $
 
-Where $B_i$ is any byte in the S-Box ($S_0(i)$), and $C$ is a key based byte in order to generate different S-Boxes for each round.
+Where $B_i$ is any byte in $S_0(i)$, and $C$ is a key based byte in order to generate different S-Boxes for each round.
 
 For generating $C$, we can digest a special byte in a round key ($R$) to use in generating S-Box like this:
 
 $ C = max(R_0 xor R_1 xor R_2 xor ... R_15, 1) $
 
-== Round key
+== Round key expansion
 Each round of NarrowWay has a unique round key, these round keys are expanded by the primary key.
 
 Before generate round keys, we define a round constant ($"RC"$) changed by round count over $op("GF")(2^8)$.
@@ -226,7 +226,7 @@ $ R_0 = op("RC")[r] xor (K_0 <<< 4)^(-1) (r = 0, 1, 2, ...) $
 
 $ R_i = R_(i - 1) xor (K_i <<< 4)^(-1) (i = 1, 2, ...) $
 
-Where $K$ is the previous round key, and $R$ is the current round key. And when $R$ is the first round key, the $K$ is the primary key.
+Where $K$ is the previous round key, and $R$ is the current round key. And $K$ refers to the primary key when $R$ is to be the first round key.
 
 == Round
 An integral round for encryption conatains these following 3 steps:
@@ -237,7 +237,9 @@ An integral round for encryption conatains these following 3 steps:
 
 *Mix columns*
 
-Shift column 1 down one row, shift column 2 down two rows, and shift column 3 down three rows.
+The *Mix columns* step operates on the columns of the state, it cyclically shifts column 1 down one row, shifts column 2 down two rows, and shifts column 3 down three rows.
+
+The example of 128-bit state:
 
 $ 
 mat(b_(1,1), b_(1,2), b_(1,3), b_(1,4);
@@ -253,13 +255,18 @@ b_(4,1), b_(3,2), b_(2,3), b_(1,4);)
 
 *Sub bytes*
 
-Substitute bytes in the matrix using the round S-Box.
+The *Sub bytes* step substitutes each elements in the state using the round S-Box.
 
 $ M_(i, j)^' = S(M_(i, j)) $
 
 *Apply round key*
 
-Encrypt each row with function $F$.
+The *Apply round key* step applies the round key on each row of the state with function $F$.
 
-$ b_(i,0)^', b_(i,1)^', b_(i,2)^', b_(i,3)^' = F(b_(i,0), b_(i,1), b_(i,2), b_(i,3), K_(i,0), K_(i,1), K_(i,2), K_(i,3))
-(i = 0, 1, 2, 3) $
+$ b_(i,0)^', b_(i,1)^', b_(i,2)^', b_(i,3)^' = F(b_(i,0), b_(i,1), b_(i,2), b_(i,3), K_(i,0), K_(i,1), K_(i,2), K_(i,3)) $
+
+$ i = cases(
+  [0, 1, 2, 3] italic("if") "key lenth" = 128 "bits",
+  [0, 1, 2, 3, 4, 5] italic("if") "key lenth" = 256 "bits",
+  [0, 1, 2, 3, 4, 5, 6, 7] italic("if") "key lenth" = 256 "bits"
+) $

@@ -505,6 +505,7 @@ fn apply_round_inv_256(mat: &mut Matrix256, key: &Key256) {
     }
 }
 
+/** NarrowWay-128 block cipher */
 #[derive(Debug)]
 pub struct Cipher128 {
     s_boxes: [SBox; ROUND_128],
@@ -543,6 +544,7 @@ impl Cipher128 {
             round_keys,
         }
     }
+    /** Encrypt a block through NarrowWay-128 */
     pub fn encrypt(&self, block: Block128) -> Block128 {
         let mut mat = Matrix128::new(block);
 
@@ -554,6 +556,7 @@ impl Cipher128 {
 
         mat.dump()
     }
+    /** Decrypt a block through NarrowWay-128 */
     pub fn decrypt(&self, block: Block128) -> Block128 {
         let mut mat = Matrix128::new(block);
 
@@ -567,6 +570,7 @@ impl Cipher128 {
     }
 }
 
+/** NarrowWay-192 block cipher */
 #[derive(Debug)]
 pub struct Cipher192 {
     s_boxes: [SBox; ROUND_192],
@@ -605,6 +609,7 @@ impl Cipher192 {
             round_keys,
         }
     }
+    /** Encrypt a block through NarrowWay-192 */
     pub fn encrypt(&self, block: Block192) -> Block192 {
         let mut mat = Matrix192::new(block);
 
@@ -616,6 +621,7 @@ impl Cipher192 {
 
         mat.dump()
     }
+    /** Decrypt a block through NarrowWay-192 */
     pub fn decrypt(&self, block: Block192) -> Block192 {
         let mut mat = Matrix192::new(block);
 
@@ -629,6 +635,7 @@ impl Cipher192 {
     }
 }
 
+/** NarrowWay-256 block cipher */
 #[derive(Debug)]
 pub struct Cipher256 {
     s_boxes: [SBox; ROUND_256],
@@ -667,6 +674,7 @@ impl Cipher256 {
             round_keys,
         }
     }
+    /** Encrypt a block through NarrowWay-256 */
     pub fn encrypt(&self, block: Block256) -> Block256 {
         let mut mat = Matrix256::new(block);
 
@@ -678,6 +686,7 @@ impl Cipher256 {
 
         mat.dump()
     }
+    /** Decrypt a block through NarrowWay-256 */
     pub fn decrypt(&self, block: Block256) -> Block256 {
         let mut mat = Matrix256::new(block);
 
