@@ -1,83 +1,29 @@
 mod exports;
 
-const ROUND_128: usize = 16;
-const ROUND_192: usize = 18;
-const ROUND_256: usize = 20;
+const ROUND_256: usize = 16;
+const ROUND_384: usize = 18;
+const ROUND_512: usize = 20;
 
 const GF28_M: u8 = 0b1110001;
 
 type SBox = [u8; 256];
-type Key128 = [u8; 16];
-type Key192 = [u8; 24];
 type Key256 = [u8; 32];
-type Block128 = [u8; 16];
-type Block192 = [u8; 24];
+type Key384 = [u8; 48];
+type Key512 = [u8; 64];
 type Block256 = [u8; 32];
+type Block384 = [u8; 48];
+type Block512 = [u8; 64];
 
 #[derive(Debug)]
-struct Matrix128([[u8; 4]; 4]);
-
-impl Matrix128 {
-    fn new(bytes: Block128) -> Self {
-        let mut mat = Self([[0; 4]; 4]);
-
-        for row in 0..4 {
-            for col in 0..4 {
-                mat.0[row][col] = bytes[row * 4 + col];
-            }
-        }
-        mat
-    }
-    fn dump(&self) -> Block128 {
-        let mut bytes = [0; 16];
-
-        for row in 0..4 {
-            for col in 0..4 {
-                bytes[row * 4 + col] = self.0[row][col];
-            }
-        }
-
-        bytes
-    }
-}
-
-#[derive(Debug)]
-struct Matrix192([[u8; 4]; 6]);
-
-impl Matrix192 {
-    fn new(bytes: Block192) -> Self {
-        let mut mat = Self([[0; 4]; 6]);
-
-        for row in 0..6 {
-            for col in 0..4 {
-                mat.0[row][col] = bytes[row * 4 + col];
-            }
-        }
-        mat
-    }
-    fn dump(&self) -> Block192 {
-        let mut bytes = [0; 24];
-
-        for row in 0..6 {
-            for col in 0..4 {
-                bytes[row * 4 + col] = self.0[row][col];
-            }
-        }
-
-        bytes
-    }
-}
-
-#[derive(Debug)]
-struct Matrix256([[u8; 4]; 8]);
+struct Matrix256([[u8; 8]; 4]);
 
 impl Matrix256 {
     fn new(bytes: Block256) -> Self {
-        let mut mat = Self([[0; 4]; 8]);
+        let mut mat = Self([[0; 8]; 4]);
 
-        for row in 0..8 {
-            for col in 0..4 {
-                mat.0[row][col] = bytes[row * 4 + col];
+        for row in 0..4 {
+            for col in 0..8 {
+                mat.0[row][col] = bytes[row * 8 + col];
             }
         }
         mat
@@ -85,9 +31,63 @@ impl Matrix256 {
     fn dump(&self) -> Block256 {
         let mut bytes = [0; 32];
 
+        for row in 0..4 {
+            for col in 0..8 {
+                bytes[row * 8 + col] = self.0[row][col];
+            }
+        }
+
+        bytes
+    }
+}
+
+#[derive(Debug)]
+struct Matrix384([[u8; 8]; 6]);
+
+impl Matrix384 {
+    fn new(bytes: Block384) -> Self {
+        let mut mat = Self([[0; 8]; 6]);
+
+        for row in 0..6 {
+            for col in 0..8 {
+                mat.0[row][col] = bytes[row * 8 + col];
+            }
+        }
+        mat
+    }
+    fn dump(&self) -> Block384 {
+        let mut bytes = [0; 48];
+
+        for row in 0..6 {
+            for col in 0..8 {
+                bytes[row * 8 + col] = self.0[row][col];
+            }
+        }
+
+        bytes
+    }
+}
+
+#[derive(Debug)]
+struct Matrix512([[u8; 8]; 8]);
+
+impl Matrix512 {
+    fn new(bytes: Block512) -> Self {
+        let mut mat = Self([[0; 8]; 8]);
+
         for row in 0..8 {
-            for col in 0..4 {
-                bytes[row * 4 + col] = self.0[row][col];
+            for col in 0..8 {
+                mat.0[row][col] = bytes[row * 8 + col];
+            }
+        }
+        mat
+    }
+    fn dump(&self) -> Block512 {
+        let mut bytes = [0; 64];
+
+        for row in 0..8 {
+            for col in 0..8 {
+                bytes[row * 8 + col] = self.0[row][col];
             }
         }
 
@@ -178,36 +178,36 @@ fn rc(i: usize) -> u8 {
     byte
 }
 
-fn round_key_gen_128(key: &Key128, round: usize) -> Key128 {
-    let mut round_key = [0; 16];
-
-    round_key[0] = gf_mul_inv(shl(key[0], 4), GF28_M) ^ rc(round);
-
-    for i in 1..16 {
-        round_key[i] = gf_mul_inv(shl(key[i], 4), GF28_M) ^ round_key[i - 1];
-    }
-
-    round_key
-}
-
-fn round_key_gen_192(key: &Key192, round: usize) -> Key192 {
-    let mut round_key = [0; 24];
-
-    round_key[0] = gf_mul_inv(shl(key[0], 4), GF28_M) ^ rc(round);
-
-    for i in 1..24 {
-        round_key[i] = gf_mul_inv(shl(key[i], 4), GF28_M) ^ round_key[i - 1];
-    }
-
-    round_key
-}
-
 fn round_key_gen_256(key: &Key256, round: usize) -> Key256 {
     let mut round_key = [0; 32];
 
     round_key[0] = gf_mul_inv(shl(key[0], 4), GF28_M) ^ rc(round);
 
     for i in 1..32 {
+        round_key[i] = gf_mul_inv(shl(key[i], 4), GF28_M) ^ round_key[i - 1];
+    }
+
+    round_key
+}
+
+fn round_key_gen_384(key: &Key384, round: usize) -> Key384 {
+    let mut round_key = [0; 48];
+
+    round_key[0] = gf_mul_inv(shl(key[0], 4), GF28_M) ^ rc(round);
+
+    for i in 1..48 {
+        round_key[i] = gf_mul_inv(shl(key[i], 4), GF28_M) ^ round_key[i - 1];
+    }
+
+    round_key
+}
+
+fn round_key_gen_512(key: &Key512, round: usize) -> Key512 {
+    let mut round_key = [0; 64];
+
+    round_key[0] = gf_mul_inv(shl(key[0], 4), GF28_M) ^ rc(round);
+
+    for i in 1..64 {
         round_key[i] = gf_mul_inv(shl(key[i], 4), GF28_M) ^ round_key[i - 1];
     }
 
@@ -233,159 +233,159 @@ fn s_inv_gen(s_box: &SBox) -> SBox {
     s_inv
 }
 
-fn mix_columns_128(mat: &mut Matrix128) {
-    for i in 1..4 {
-        (
-            mat.0[i % 4][i],
-            mat.0[(i + 1) % 4][i],
-            mat.0[(i + 2) % 4][i],
-            mat.0[(i + 3) % 4][i],
-        ) = (mat.0[0][i], mat.0[1][i], mat.0[2][i], mat.0[3][i]);
-    }
-}
-
-fn mix_columns_192(mat: &mut Matrix192) {
-    for i in 1..4 {
-        (
-            mat.0[i % 4][i],
-            mat.0[(i + 1) % 4][i],
-            mat.0[(i + 2) % 4][i],
-            mat.0[(i + 3) % 4][i],
-            mat.0[(i + 4) % 4][i],
-            mat.0[(i + 5) % 4][i],
-        ) = (
-            mat.0[0][i],
-            mat.0[1][i],
-            mat.0[2][i],
-            mat.0[3][i],
-            mat.0[4][i],
-            mat.0[5][i],
-        );
-    }
-}
-
 fn mix_columns_256(mat: &mut Matrix256) {
-    for i in 1..4 {
-        (
-            mat.0[i % 8][i],
-            mat.0[(i + 1) % 8][i],
-            mat.0[(i + 2) % 8][i],
-            mat.0[(i + 3) % 8][i],
-            mat.0[(i + 4) % 8][i],
-            mat.0[(i + 5) % 8][i],
-            mat.0[(i + 6) % 8][i],
-            mat.0[(i + 7) % 8][i],
-        ) = (
-            mat.0[0][i],
-            mat.0[1][i],
-            mat.0[2][i],
-            mat.0[3][i],
-            mat.0[4][i],
-            mat.0[5][i],
-            mat.0[6][i],
-            mat.0[7][i],
-        );
+    for col in 1..8 {
+        let off = (8 - col) % 4;
+
+        if off == 0 {
+            continue;
+        }
+
+        for j in 0..off / 2 {
+            (mat.0[j][col], mat.0[off - 1 - j][col]) = (mat.0[off - 1 - j][col], mat.0[j][col]);
+        }
+        for j in off..2 + off / 2 {
+            (mat.0[j][col], mat.0[3 + off - j][col]) = (mat.0[3 + off - j][col], mat.0[j][col]);
+        }
+        for j in 0..2 {
+            (mat.0[j][col], mat.0[3 - j][col]) = (mat.0[3 - j][col], mat.0[j][col]);
+        }
     }
 }
 
-fn mix_columns_inv_128(mat: &mut Matrix128) {
-    for i in 1..4 {
-        (
-            mat.0[(4 - i) % 4][i],
-            mat.0[(4 - i - 3) % 4][i],
-            mat.0[(4 - i - 2) % 4][i],
-            mat.0[(4 - i - 1) % 4][i],
-        ) = (mat.0[0][i], mat.0[1][i], mat.0[2][i], mat.0[3][i]);
+fn mix_columns_384(mat: &mut Matrix384) {
+    for col in 1..8 {
+        let off = (8 - col) % 6;
+
+        if off == 0 {
+            continue;
+        }
+
+        for j in 0..off / 2 {
+            (mat.0[j][col], mat.0[off - 1 - j][col]) = (mat.0[off - 1 - j][col], mat.0[j][col]);
+        }
+        for j in off..3 + off / 2 {
+            (mat.0[j][col], mat.0[5 + off - j][col]) = (mat.0[5 + off - j][col], mat.0[j][col]);
+        }
+        for j in 0..3 {
+            (mat.0[j][col], mat.0[5 - j][col]) = (mat.0[5 - j][col], mat.0[j][col]);
+        }
     }
 }
 
-fn mix_columns_inv_192(mat: &mut Matrix192) {
-    for i in 1..4 {
-        (
-            mat.0[(4 - i) % 4][i],
-            mat.0[(4 - i - 5) % 4][i],
-            mat.0[(4 - i - 4) % 4][i],
-            mat.0[(4 - i - 3) % 4][i],
-            mat.0[(4 - i - 2) % 4][i],
-            mat.0[(4 - i - 1) % 4][i],
-        ) = (
-            mat.0[0][i],
-            mat.0[1][i],
-            mat.0[2][i],
-            mat.0[3][i],
-            mat.0[4][i],
-            mat.0[5][i],
-        );
+fn mix_columns_512(mat: &mut Matrix512) {
+    for col in 1..8 {
+        let off = 8 - col;
+        for j in 0..off / 2 {
+            (mat.0[j][col], mat.0[off - 1 - j][col]) = (mat.0[off - 1 - j][col], mat.0[j][col]);
+        }
+        for j in off..4 + off / 2 {
+            (mat.0[j][col], mat.0[7 + off - j][col]) = (mat.0[7 + off - j][col], mat.0[j][col]);
+        }
+        for j in 0..4 {
+            (mat.0[j][col], mat.0[7 - j][col]) = (mat.0[7 - j][col], mat.0[j][col]);
+        }
     }
 }
 
 fn mix_columns_inv_256(mat: &mut Matrix256) {
-    for i in 1..4 {
-        (
-            mat.0[(8 - i) % 8][i],
-            mat.0[(8 - i - 7) % 8][i],
-            mat.0[(8 - i - 6) % 8][i],
-            mat.0[(8 - i - 5) % 8][i],
-            mat.0[(8 - i - 4) % 8][i],
-            mat.0[(8 - i - 3) % 8][i],
-            mat.0[(8 - i - 2) % 8][i],
-            mat.0[(8 - i - 1) % 8][i],
-        ) = (
-            mat.0[0][i],
-            mat.0[1][i],
-            mat.0[2][i],
-            mat.0[3][i],
-            mat.0[4][i],
-            mat.0[5][i],
-            mat.0[6][i],
-            mat.0[7][i],
-        );
+    for col in 1..8 {
+        let off = col % 4;
+
+        if off == 0 {
+            continue;
+        }
+
+        for j in 0..off / 2 {
+            (mat.0[j][col], mat.0[off - 1 - j][col]) = (mat.0[off - 1 - j][col], mat.0[j][col]);
+        }
+        for j in off..2 + off / 2 {
+            (mat.0[j][col], mat.0[3 + off - j][col]) = (mat.0[3 + off - j][col], mat.0[j][col]);
+        }
+        for j in 0..2 {
+            (mat.0[j][col], mat.0[3 - j][col]) = (mat.0[3 - j][col], mat.0[j][col]);
+        }
     }
 }
 
-fn sub_bytes_128(s_box: &SBox, mat: &mut Matrix128) {
-    for row in 0..4 {
-        for col in 0..4 {
+fn mix_columns_inv_384(mat: &mut Matrix384) {
+    for col in 1..8 {
+        let off = col % 6;
+
+        if off == 0 {
+            continue;
+        }
+
+        for j in 0..off / 2 {
+            (mat.0[j][col], mat.0[off - 1 - j][col]) = (mat.0[off - 1 - j][col], mat.0[j][col]);
+        }
+        for j in off..3 + off / 2 {
+            (mat.0[j][col], mat.0[5 + off - j][col]) = (mat.0[5 + off - j][col], mat.0[j][col]);
+        }
+        for j in 0..3 {
+            (mat.0[j][col], mat.0[5 - j][col]) = (mat.0[5 - j][col], mat.0[j][col]);
+        }
+    }
+}
+
+fn mix_columns_inv_512(mat: &mut Matrix512) {
+    for col in 1..8 {
+        let off = col;
+        for j in 0..off / 2 {
+            (mat.0[j][col], mat.0[off - 1 - j][col]) = (mat.0[off - 1 - j][col], mat.0[j][col]);
+        }
+        for j in off..4 + off / 2 {
+            (mat.0[j][col], mat.0[7 + off - j][col]) = (mat.0[7 + off - j][col], mat.0[j][col]);
+        }
+        for j in 0..4 {
+            (mat.0[j][col], mat.0[7 - j][col]) = (mat.0[7 - j][col], mat.0[j][col]);
+        }
+    }
+}
+
+fn sub_bytes_256(s_boxes: &[SBox; 4], mat: &mut Matrix256) {
+    for (row, s_box) in s_boxes.iter().enumerate() {
+        for col in 0..8 {
             mat.0[row][col] = s_box[mat.0[row][col] as usize];
         }
     }
 }
 
-fn sub_bytes_192(s_box: &SBox, mat: &mut Matrix192) {
-    for row in 0..6 {
-        for col in 0..4 {
+fn sub_bytes_384(s_boxes: &[SBox; 6], mat: &mut Matrix384) {
+    for (row, s_box) in s_boxes.iter().enumerate() {
+        for col in 0..8 {
             mat.0[row][col] = s_box[mat.0[row][col] as usize];
         }
     }
 }
 
-fn sub_bytes_256(s_box: &SBox, mat: &mut Matrix256) {
-    for row in 0..8 {
-        for col in 0..4 {
+fn sub_bytes_512(s_boxes: &[SBox; 8], mat: &mut Matrix512) {
+    for (row, s_box) in s_boxes.iter().enumerate() {
+        for col in 0..8 {
             mat.0[row][col] = s_box[mat.0[row][col] as usize];
         }
     }
 }
 
-fn sub_bytes_inv_128(s_inv: &SBox, mat: &mut Matrix128) {
-    for row in 0..4 {
-        for col in 0..4 {
+fn sub_bytes_inv_256(s_invs: &[SBox; 4], mat: &mut Matrix256) {
+    for (row, s_inv) in s_invs.iter().enumerate() {
+        for col in 0..8 {
             mat.0[row][col] = s_inv[mat.0[row][col] as usize]
         }
     }
 }
 
-fn sub_bytes_inv_192(s_inv: &SBox, mat: &mut Matrix192) {
-    for row in 0..6 {
-        for col in 0..4 {
+fn sub_bytes_inv_384(s_invs: &[SBox; 6], mat: &mut Matrix384) {
+    for (row, s_inv) in s_invs.iter().enumerate() {
+        for col in 0..8 {
             mat.0[row][col] = s_inv[mat.0[row][col] as usize]
         }
     }
 }
 
-fn sub_bytes_inv_256(s_inv: &SBox, mat: &mut Matrix256) {
-    for row in 0..8 {
-        for col in 0..4 {
+fn sub_bytes_inv_512(s_invs: &[SBox; 8], mat: &mut Matrix512) {
+    for (row, s_inv) in s_invs.iter().enumerate() {
+        for col in 0..8 {
             mat.0[row][col] = s_inv[mat.0[row][col] as usize]
         }
     }
@@ -399,263 +399,141 @@ fn shr(num: u8, offset: u32) -> u8 {
     num.wrapping_shl(8 - offset) | (num >> offset)
 }
 
-fn func_f(p_0: u8, p_1: u8, p_2: u8, p_3: u8, key: [u8; 4]) -> (u8, u8, u8, u8) {
-    /* XOR operation */
-    let p_1 = p_0 ^ p_1 ^ p_2;
-    let p_0 = shl(p_0, 2);
-    let p_3 = shr(p_3, 2);
-    let p_2 = shr(p_1, 4) ^ p_2 ^ p_3;
-    let p_1 = shr(p_1, 2);
-    let p_3 = p_3 ^ shl(p_2, 1);
-    let p_0 = p_0 ^ p_1;
-    let p_2 = shr(p_2, 3);
+fn func_f(p: &mut [u8; 8], key: [u8; 8]) {
+    p[1] ^= p[0] ^ p[2];
+    p[6] ^= p[5] ^ p[7];
 
-    /* Apply key */
-    let (c_0, c_1, c_2, c_3) = (p_0 ^ key[0], p_1 ^ key[1], p_2 ^ key[2], p_3 ^ key[3]);
+    p[1] = shl(p[1], 3);
+    p[2] ^= p[4];
+    p[6] = shr(p[6], 2);
 
-    (c_2, c_3, c_0, c_1)
-}
+    p[2] = shl(p[2], 2);
+    p[5] ^= p[3] ^ p[6];
 
-fn func_f_inv(c_2: u8, c_3: u8, c_0: u8, c_1: u8, key: [u8; 4]) -> (u8, u8, u8, u8) {
-    /* Apply key inverse */
-    let (p_0, p_1, p_2, p_3) = (c_0 ^ key[0], c_1 ^ key[1], c_2 ^ key[2], c_3 ^ key[3]);
+    p[4] = shr(p[4], 4);
 
-    /* Confuse inverse */
-    let p_2 = shl(p_2, 3);
-    let p_0 = p_0 ^ p_1;
-    let p_3 = p_3 ^ shl(p_2, 1);
-    let p_1 = shl(p_1, 2);
-    let p_2 = shr(p_1, 4) ^ p_2 ^ p_3;
-    let p_3 = shl(p_3, 2);
-    let p_0 = shr(p_0, 2);
-    let p_1 = p_0 ^ p_1 ^ p_2;
+    p[4] ^= p[1];
 
-    (p_0, p_1, p_2, p_3)
-}
+    p[3] ^= p[4] ^ p[7];
 
-fn apply_round_128(mat: &mut Matrix128, key: &Key128) {
-    for i in 0..4 {
-        (mat.0[i][0], mat.0[i][1], mat.0[i][2], mat.0[i][3]) = func_f(
-            mat.0[i][0],
-            mat.0[i][1],
-            mat.0[i][2],
-            mat.0[i][3],
-            key[4 * i..4 * (i + 1)].try_into().unwrap(),
-        );
+    p[5] = shl(p[5], 1);
+
+    p[0] ^= p[2];
+    p[7] ^= p[5];
+
+    for (i, p) in p.iter_mut().enumerate() {
+        *p ^= key[i];
     }
+
+    (p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]) =
+        (p[4], p[5], p[0], p[1], p[6], p[7], p[2], p[3])
 }
 
-fn apply_round_192(mat: &mut Matrix192, key: &Key192) {
-    for i in 0..6 {
-        (mat.0[i][0], mat.0[i][1], mat.0[i][2], mat.0[i][3]) = func_f(
-            mat.0[i][0],
-            mat.0[i][1],
-            mat.0[i][2],
-            mat.0[i][3],
-            key[4 * i..4 * (i + 1)].try_into().unwrap(),
-        );
+fn func_f_inv(p: &mut [u8; 8], key: [u8; 8]) {
+    (p[4], p[5], p[0], p[1], p[6], p[7], p[2], p[3]) =
+        (p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
+
+    for (i, p) in p.iter_mut().enumerate() {
+        *p ^= key[i];
     }
+
+    p[7] ^= p[5];
+    p[0] ^= p[2];
+
+    p[5] = shr(p[5], 1);
+
+    p[3] ^= p[4] ^ p[7];
+
+    p[4] ^= p[1];
+
+    p[4] = shl(p[4], 4);
+
+    p[5] ^= p[3] ^ p[6];
+    p[2] = shr(p[2], 2);
+
+    p[6] = shl(p[6], 2);
+    p[2] ^= p[4];
+    p[1] = shr(p[1], 3);
+
+    p[6] = p[5] ^ p[6] ^ p[7];
+    p[1] = p[0] ^ p[1] ^ p[2];
 }
 
 fn apply_round_256(mat: &mut Matrix256, key: &Key256) {
-    for i in 0..8 {
-        (mat.0[i][0], mat.0[i][1], mat.0[i][2], mat.0[i][3]) = func_f(
-            mat.0[i][0],
-            mat.0[i][1],
-            mat.0[i][2],
-            mat.0[i][3],
-            key[4 * i..4 * (i + 1)].try_into().unwrap(),
+    for row in 0..4 {
+        func_f(
+            &mut mat.0[row],
+            key[8 * row..8 * row + 8].try_into().unwrap(),
         );
     }
 }
 
-fn apply_round_inv_128(mat: &mut Matrix128, key: &Key128) {
-    for i in 0..4 {
-        (mat.0[i][0], mat.0[i][1], mat.0[i][2], mat.0[i][3]) = func_f_inv(
-            mat.0[i][0],
-            mat.0[i][1],
-            mat.0[i][2],
-            mat.0[i][3],
-            key[4 * i..4 * (i + 1)].try_into().unwrap(),
+fn apply_round_384(mat: &mut Matrix384, key: &Key384) {
+    for row in 0..6 {
+        func_f(
+            &mut mat.0[row],
+            key[8 * row..8 * row + 8].try_into().unwrap(),
         );
     }
 }
 
-fn apply_round_inv_192(mat: &mut Matrix192, key: &Key192) {
-    for i in 0..6 {
-        (mat.0[i][0], mat.0[i][1], mat.0[i][2], mat.0[i][3]) = func_f_inv(
-            mat.0[i][0],
-            mat.0[i][1],
-            mat.0[i][2],
-            mat.0[i][3],
-            key[4 * i..4 * (i + 1)].try_into().unwrap(),
+fn apply_round_512(mat: &mut Matrix512, key: &Key512) {
+    for row in 0..8 {
+        func_f(
+            &mut mat.0[row],
+            key[8 * row..8 * row + 8].try_into().unwrap(),
         );
     }
 }
 
 fn apply_round_inv_256(mat: &mut Matrix256, key: &Key256) {
-    for i in 0..8 {
-        (mat.0[i][0], mat.0[i][1], mat.0[i][2], mat.0[i][3]) = func_f_inv(
-            mat.0[i][0],
-            mat.0[i][1],
-            mat.0[i][2],
-            mat.0[i][3],
-            key[4 * i..4 * (i + 1)].try_into().unwrap(),
+    for row in 0..4 {
+        func_f_inv(
+            &mut mat.0[row],
+            key[8 * row..8 * row + 8].try_into().unwrap(),
+        );
+    }
+}
+
+fn apply_round_inv_384(mat: &mut Matrix384, key: &Key384) {
+    for row in 0..6 {
+        func_f_inv(
+            &mut mat.0[row],
+            key[8 * row..8 * row + 8].try_into().unwrap(),
+        );
+    }
+}
+
+fn apply_round_inv_512(mat: &mut Matrix512, key: &Key512) {
+    for row in 0..8 {
+        func_f_inv(
+            &mut mat.0[row],
+            key[8 * row..8 * row + 8].try_into().unwrap(),
         );
     }
 }
 
 /** NarrowWay-128 block cipher */
 #[derive(Debug)]
-pub struct Cipher128 {
-    s_boxes: [SBox; ROUND_128],
-    s_inves: [SBox; ROUND_128],
-    round_keys: [Key128; ROUND_128],
-}
-
-impl Cipher128 {
-    pub fn new(key: Key128) -> Self {
-        fn digest_key(key: &Key128) -> u8 {
-            let mut byte = 0;
-
-            for i in key.iter() {
-                byte ^= *i;
-            }
-
-            std::cmp::max(byte, 1)
-        }
-        let mut s_boxes = [[0; 256]; ROUND_128];
-        let mut s_inves = [[0; 256]; ROUND_128];
-        let mut round_keys = [[0; 16]; ROUND_128];
-
-        for round in 0..ROUND_128 {
-            if round == 0 {
-                round_keys[round] = round_key_gen_128(&key, round);
-            } else {
-                round_keys[round] = round_key_gen_128(&round_keys[round - 1], round);
-            }
-            s_boxes[round] = s_box_gen(digest_key(&round_keys[round]));
-            s_inves[round] = s_inv_gen(&s_boxes[round]);
-        }
-
-        Self {
-            s_boxes,
-            s_inves,
-            round_keys,
-        }
-    }
-    /** Encrypt a block through NarrowWay-128 */
-    pub fn encrypt(&self, block: Block128) -> Block128 {
-        let mut mat = Matrix128::new(block);
-
-        for round in 0..ROUND_128 {
-            mix_columns_128(&mut mat);
-            sub_bytes_128(&self.s_boxes[round], &mut mat);
-            apply_round_128(&mut mat, &self.round_keys[round]);
-        }
-
-        mat.dump()
-    }
-    /** Decrypt a block through NarrowWay-128 */
-    pub fn decrypt(&self, block: Block128) -> Block128 {
-        let mut mat = Matrix128::new(block);
-
-        for round in (0..ROUND_128).rev() {
-            apply_round_inv_128(&mut mat, &self.round_keys[round]);
-            sub_bytes_inv_128(&self.s_inves[round], &mut mat);
-            mix_columns_inv_128(&mut mat);
-        }
-
-        mat.dump()
-    }
-}
-
-/** NarrowWay-192 block cipher */
-#[derive(Debug)]
-pub struct Cipher192 {
-    s_boxes: [SBox; ROUND_192],
-    s_inves: [SBox; ROUND_192],
-    round_keys: [Key192; ROUND_192],
-}
-
-impl Cipher192 {
-    pub fn new(key: Key192) -> Self {
-        fn digest_key(key: &Key192) -> u8 {
-            let mut byte = 0;
-
-            for i in key.iter() {
-                byte ^= *i;
-            }
-
-            std::cmp::max(byte, 1)
-        }
-        let mut s_boxes = [[0; 256]; ROUND_192];
-        let mut s_inves = [[0; 256]; ROUND_192];
-        let mut round_keys = [[0; 24]; ROUND_192];
-
-        for round in 0..ROUND_192 {
-            if round == 0 {
-                round_keys[round] = round_key_gen_192(&key, round);
-            } else {
-                round_keys[round] = round_key_gen_192(&round_keys[round - 1], round);
-            }
-            s_boxes[round] = s_box_gen(digest_key(&round_keys[round]));
-            s_inves[round] = s_inv_gen(&s_boxes[round]);
-        }
-
-        Self {
-            s_boxes,
-            s_inves,
-            round_keys,
-        }
-    }
-    /** Encrypt a block through NarrowWay-192 */
-    pub fn encrypt(&self, block: Block192) -> Block192 {
-        let mut mat = Matrix192::new(block);
-
-        for round in 0..ROUND_192 {
-            mix_columns_192(&mut mat);
-            sub_bytes_192(&self.s_boxes[round], &mut mat);
-            apply_round_192(&mut mat, &self.round_keys[round]);
-        }
-
-        mat.dump()
-    }
-    /** Decrypt a block through NarrowWay-192 */
-    pub fn decrypt(&self, block: Block192) -> Block192 {
-        let mut mat = Matrix192::new(block);
-
-        for round in (0..ROUND_192).rev() {
-            apply_round_inv_192(&mut mat, &self.round_keys[round]);
-            sub_bytes_inv_192(&self.s_inves[round], &mut mat);
-            mix_columns_inv_192(&mut mat);
-        }
-
-        mat.dump()
-    }
-}
-
-/** NarrowWay-256 block cipher */
-#[derive(Debug)]
 pub struct Cipher256 {
-    s_boxes: [SBox; ROUND_256],
-    s_inves: [SBox; ROUND_256],
+    s_boxes: [[SBox; 4]; ROUND_256],
+    s_inves: [[SBox; 4]; ROUND_256],
     round_keys: [Key256; ROUND_256],
 }
 
 impl Cipher256 {
     pub fn new(key: Key256) -> Self {
-        fn digest_key(key: &Key256) -> u8 {
-            let mut byte = 0;
+        fn digest_key(key: &[u8]) -> u8 {
+            let mut byte = key[0];
 
-            for i in key.iter() {
-                byte ^= *i;
+            for i in key.iter().skip(1) {
+                byte = gf_mul(byte, std::cmp::max(*i, 1), GF28_M);
             }
 
-            std::cmp::max(byte, 1)
+            byte
         }
-        let mut s_boxes = [[0; 256]; ROUND_256];
-        let mut s_inves = [[0; 256]; ROUND_256];
+        let mut s_boxes = [[[0; 256]; 4]; ROUND_256];
+        let mut s_inves = [[[0; 256]; 4]; ROUND_256];
         let mut round_keys = [[0; 32]; ROUND_256];
 
         for round in 0..ROUND_256 {
@@ -664,8 +542,10 @@ impl Cipher256 {
             } else {
                 round_keys[round] = round_key_gen_256(&round_keys[round - 1], round);
             }
-            s_boxes[round] = s_box_gen(digest_key(&round_keys[round]));
-            s_inves[round] = s_inv_gen(&s_boxes[round]);
+            for s in 0..4 {
+                s_boxes[round][s] = s_box_gen(digest_key(&round_keys[round][8 * s..8 * s + 8]));
+                s_inves[round][s] = s_inv_gen(&s_boxes[round][s]);
+            }
         }
 
         Self {
@@ -694,6 +574,140 @@ impl Cipher256 {
             apply_round_inv_256(&mut mat, &self.round_keys[round]);
             sub_bytes_inv_256(&self.s_inves[round], &mut mat);
             mix_columns_inv_256(&mut mat);
+        }
+
+        mat.dump()
+    }
+}
+
+/** NarrowWay-384 block cipher */
+#[derive(Debug)]
+pub struct Cipher384 {
+    s_boxes: [[SBox; 6]; ROUND_384],
+    s_inves: [[SBox; 6]; ROUND_384],
+    round_keys: [Key384; ROUND_384],
+}
+
+impl Cipher384 {
+    pub fn new(key: Key384) -> Self {
+        fn digest_key(key: &[u8]) -> u8 {
+            let mut byte = key[0];
+
+            for i in key.iter().skip(1) {
+                byte = gf_mul(byte, std::cmp::max(*i, 1), GF28_M);
+            }
+
+            byte
+        }
+        let mut s_boxes = [[[0; 256]; 6]; ROUND_384];
+        let mut s_inves = [[[0; 256]; 6]; ROUND_384];
+        let mut round_keys = [[0; 48]; ROUND_384];
+
+        for round in 0..ROUND_384 {
+            if round == 0 {
+                round_keys[round] = round_key_gen_384(&key, round);
+            } else {
+                round_keys[round] = round_key_gen_384(&round_keys[round - 1], round);
+            }
+            for s in 0..6 {
+                s_boxes[round][s] = s_box_gen(digest_key(&round_keys[round][8 * s..8 * s + 8]));
+                s_inves[round][s] = s_inv_gen(&s_boxes[round][s]);
+            }
+        }
+
+        Self {
+            s_boxes,
+            s_inves,
+            round_keys,
+        }
+    }
+    /** Encrypt a block through NarrowWay-384 */
+    pub fn encrypt(&self, block: Block384) -> Block384 {
+        let mut mat = Matrix384::new(block);
+
+        for round in 0..ROUND_384 {
+            mix_columns_384(&mut mat);
+            sub_bytes_384(&self.s_boxes[round], &mut mat);
+            apply_round_384(&mut mat, &self.round_keys[round]);
+        }
+
+        mat.dump()
+    }
+    /** Decrypt a block through NarrowWay-384 */
+    pub fn decrypt(&self, block: Block384) -> Block384 {
+        let mut mat = Matrix384::new(block);
+
+        for round in (0..ROUND_384).rev() {
+            apply_round_inv_384(&mut mat, &self.round_keys[round]);
+            sub_bytes_inv_384(&self.s_inves[round], &mut mat);
+            mix_columns_inv_384(&mut mat);
+        }
+
+        mat.dump()
+    }
+}
+
+/** NarrowWay-512 block cipher */
+#[derive(Debug)]
+pub struct Cipher512 {
+    s_boxes: [[SBox; 8]; ROUND_512],
+    s_inves: [[SBox; 8]; ROUND_512],
+    round_keys: [Key512; ROUND_512],
+}
+
+impl Cipher512 {
+    pub fn new(key: Key512) -> Self {
+        fn digest_key(key: &[u8]) -> u8 {
+            let mut byte = key[0];
+
+            for i in key.iter().skip(1) {
+                byte = gf_mul(byte, std::cmp::max(*i, 1), GF28_M);
+            }
+
+            byte
+        }
+        let mut s_boxes = [[[0; 256]; 8]; ROUND_512];
+        let mut s_inves = [[[0; 256]; 8]; ROUND_512];
+        let mut round_keys = [[0; 64]; ROUND_512];
+
+        for round in 0..ROUND_512 {
+            if round == 0 {
+                round_keys[round] = round_key_gen_512(&key, round);
+            } else {
+                round_keys[round] = round_key_gen_512(&round_keys[round - 1], round);
+            }
+            for s in 0..8 {
+                s_boxes[round][s] = s_box_gen(digest_key(&round_keys[round][8 * s..8 * s + 8]));
+                s_inves[round][s] = s_inv_gen(&s_boxes[round][s]);
+            }
+        }
+
+        Self {
+            s_boxes,
+            s_inves,
+            round_keys,
+        }
+    }
+    /** Encrypt a block through NarrowWay-512 */
+    pub fn encrypt(&self, block: Block512) -> Block512 {
+        let mut mat = Matrix512::new(block);
+
+        for round in 0..ROUND_512 {
+            mix_columns_512(&mut mat);
+            sub_bytes_512(&self.s_boxes[round], &mut mat);
+            apply_round_512(&mut mat, &self.round_keys[round]);
+        }
+
+        mat.dump()
+    }
+    /** Decrypt a block through NarrowWay-512 */
+    pub fn decrypt(&self, block: Block512) -> Block512 {
+        let mut mat = Matrix512::new(block);
+
+        for round in (0..ROUND_512).rev() {
+            apply_round_inv_512(&mut mat, &self.round_keys[round]);
+            sub_bytes_inv_512(&self.s_inves[round], &mut mat);
+            mix_columns_inv_512(&mut mat);
         }
 
         mat.dump()

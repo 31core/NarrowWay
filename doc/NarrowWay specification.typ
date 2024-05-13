@@ -1,7 +1,8 @@
-#import "@preview/fletcher:0.3.0" as fletcher: node, edge
+#import "Function F.typ": func_img
 
 #set page(numbering: "1")
 #set math.mat(delim: "[")
+#set text(size: 10pt)
 
 #align(center, text(17pt)[NarrowWay specification])
 
@@ -17,171 +18,67 @@ Unsuitable for production use.])
 #set heading(numbering: "1.")
 
 = Introduction
-NarrowWay is a symmetric cipher based on Substitution-Permutation Network, with fixed 128, 192 and 256 bits block size and 128, 192 and 256 bits key size.
+NarrowWay is a symmetric cipher based on Substitution-Permutation Network, with fixed 256, 384 and 512 bits block size and 256, 384 and 512 bits key size.
 
 The number of rounds for each key size is:
-- 16 rounds for 128 bits
-- 18 rounds for 192 bits
-- 20 rounds for 256 bits
+- 16 rounds for 256 bits
+- 18 rounds for 384 bits
+- 20 rounds for 512 bits
 
 It is designed with the following goals:
 - High performance
 - Strong security
 
 = Structure
-Take NarrowWay-128 for for example, put 16 bytes (from $b_0$ to $b_15$) plaintext and key into a 4x4 matrix. Encryption is to be performed on this matrix. As for 192 and 256 bit blocks, the matrix shapes are 6x4 and 8x4.
+Take NarrowWay-256 for for example, put 32 bytes (from $b_0$ to $b_31$) plaintext and key into a 4x8 matrix. Encryption is to be performed on this matrix. As for 384 and 512 bit blocks, the matrix shapes are 6x8 and 8x8.
 
 #figure(
-$ M = mat(b_0, b_1, b_2, b_3;
-b_4, b_5, b_6, b_7;
-b_8, b_9, b_10, b_11;
-b_12, b_13, b_14, b_15) $, caption: [4x4 matrix for NarrowWay-128])
+$ M = mat(b_0, b_1, ...,  b_7;
+b_8, b_9, ...,  b_15;
+dots.v, dots.v, dots.down, dots.v;
+b_24, b_25, ..., b_31) $, caption: [4x8 matrix for NarrowWay-256])
 
 #figure(
-$ M = mat(b_0, b_1, b_2, b_3;
-b_4, b_5, b_6, b_7;
-b_8, b_9, b_10, b_11;
-b_12, b_13, b_14, b_15;
-b_16, b_17, b_18, b_19;
-b_20, b_21, b_22, b_23) $, caption: [6x4 matrix for NarrowWay-192])
+$ M = mat(b_0, b_1, ...,  b_7;
+b_8, b_9, ...,  b_15;
+dots.v, dots.v, dots.down, dots.v;
+b_40, b_41, ..., b_47) $, caption: [6x8 matrix for NarrowWay-384])
 
 #figure(
-$ M = mat(b_0, b_1, b_2, b_3;
-b_4, b_5, b_6, b_7;
-b_8, b_9, b_10, b_11;
-b_12, b_13, b_14, b_15;
-b_16, b_17, b_18, b_19;
-b_20, b_21, b_22, b_23;
-b_24, b_25, b_26, b_27;
-b_28, b_29, b_30, b_31) $, caption: [8x4 matrix for NarrowWay-256])
+$ M = mat(b_0, b_1, ...,  b_7;
+b_8, b_9, ...,  b_15;
+dots.v, dots.v, dots.down, dots.v;
+b_56, b_57, ..., b_63) $, caption: [8x8 matrix for NarrowWay-512])
 
 == Function F
-Function $F$ is the core encryption function in NarrowWay, it takes 4 bytes plaintext ($P_0$, $P_1$, $P_2$ and $P_3$) and 4 bytes key ($K_0$, $K_1$, $K_2$ and $K_3$) as input, and then outputs 4 bytes encrypted data ($C_0$, $C_1$, $C_2$ and $C_3$).
+Function $F$ is the core encryption function in NarrowWay, it takes 8 bytes plaintext ($P_0$, $P_1$, $P_2$, $P_3$, $P_4$, $P_5$, $P_6$ and $P_7$) and 8 bytes key ($K_0$, $K_1$, $K_2$, $K_3$, $K_4$, $K_5$, $K_6$ and $K_7$) as input, and then outputs 8 bytes encrypted data ($C_0$, $C_1$, $C_2$, $C_3$, $C_4$, $C_5$, $C_6$ and $C_7$).
 
 #figure(
-[#fletcher.diagram(
-  node((0, 0), $P_0$),
-  node((1, 0), $P_1$),
-  node((2, 0), $P_2$),
-  node((3, 0), $P_3$),
-
-  /* line 1 */
-  edge((0, 0), (0, -2), "-|>"),
-  edge((2, 0), (2, -2), "-|>"),
-  edge((0, -1), (1, -1), "-|>"),
-  edge((1, 0), (1, -1), "-|>"),
-  edge((2, -1), (1, -1), "-|>"),
-  edge((3, 0), (3, -1), "-|>"),
-  node((1, -1), $xor$),
-  node((3, -1), $>>> 2$),
-
-  /* line 2 */
-  edge((1, -1), (1, -3), "-|>"),
-  edge((3, -1), (3, -3), "-|>"),
-  edge((1, -2), (1.5, -2), "-|>"),
-  edge((1.5, -2), (2, -2), "-|>"),
-  edge((3, -2), (2, -2), "-|>"),
-  node((0, -2), $<<< 2$),
-  node((1.5, -2), $>>> 4$),
-  node((2, -2), $xor$),
-
-  /* line 3 */
-  node((1, -3), $>>> 2$),
-  node((2.5, -3), $<<<1$),
-  node((3, -3), $xor$),
-  edge((2, -3), (2.5, -3), "-|>"),
-  edge((2.5, -3), (3, -3), "-|>"),
-
-  /* line 4 */
-  edge((0, -2), (0, -4), "-|>"),
-  edge((2, -2), (2, -4), "-|>"),
-  edge((1, -4), (0, -4), "-|>"),
-  node((0, -4), $xor$),
-  node((2, -4), $>>> 3$),
-
-  /* Apply key */
-  edge((0, -4), (0, -5), "-|>"),
-  edge((1, -3), (1, -5), "-|>"),
-  edge((2, -4), (2, -5), "-|>"),
-  edge((3, -3), (3, -5), "-|>"),
-  node((0, -5), $xor$),
-  node((1, -5), $xor$),
-  node((2, -5), $xor$),
-  node((3, -5), $xor$),
-
-  node((0.5, -5), $K_0$),
-  edge((0.5, -5), (0, -5), "-|>"),
-  node((1.5, -5), $K_1$),
-  edge((1.5, -5), (1, -5), "-|>"),
-  node((2.5, -5), $K_2$),
-  edge((2.5, -5), (2, -5), "-|>"),
-  node((3.5, -5), $K_3$),
-  edge((3.5, -5), (3, -5), "-|>"),
-
-  /* Bit shift */
-  edge((0, -5), (0, -6)),
-  edge((1, -5), (1, -6)),
-  edge((2, -5), (2, -6)),
-  edge((3, -5), (3, -6)),
-
-  /* Returns */
-  edge((0, -6), (2, -7), "-|>"),
-  node((0, -7), $C_0$),
-  edge((1, -6), (3, -7), "-|>"),
-  node((1, -7), $C_1$),
-  edge((2, -6), (0, -7), "-|>"),
-  node((2, -7), $C_2$),
-  edge((3, -6), (1, -7), "-|>"),
-  node((3, -7), $C_3$),
-)]
+[#func_img]
 ,caption: [Function $F$])
 
-*Confuse*
-
-$ P_1 := P_0 xor P_1 xor P_2 $
-$ P_0 := P_0 <<< 2 $
-$ P_3 := P_3 >>> 2 $
-$ P_2 := (P_1>>> 4) xor P_2 xor P_3 $
-$ P_1 := P_1 >>> 2 $
-$ P_3 := P_3 xor (P_2 <<< 1) $
-$ P_0 := P_0 xor P_1 $
-$ P_2 := P_2 >>> 3 $
-
-*Apply key*
-
-$ P_0 := P_0 xor K_0 $
-$ P_1 := P_1 xor K_1 $
-$ P_2 := P_2 xor K_2 $
-$ P_3 := P_3 xor K_3 $
-
-*Output*
-
-$ C_0 := P_2 $
-$ C_1 := P_3 $
-$ C_2 := P_0 $
-$ C_3 := P_1 $
-
-The expanded form is:
-
-$ F(K_0, K_1, K_2, K_3) = $
-$ C_0 = P_2 xor (P_3>>> 2) xor ((P_0 xor P_1 xor P_2) >>> 4) >>> 3 xor K_2 $
-$ C_1 = (P_3>>> 2) xor (P_2 xor (P_3>>> 2) xor ((P_0 xor P_1 xor P_2) >>> 4) <<< 1) xor K_3 $
-$ C_2 = (P_0 <<< 2) xor ((P_0 xor P_1 xor P_2) >>> 2) xor K_0 $
-$ C_3 = (P_0 xor P_1 xor P_2) >>> 2 xor K_1 $
-
 == $op("GF")(2^8)$
-Addition and multiplication in NarrowWay are performed over $op("GF")(2^8)$.
+Addition and multiplication in NarrowWay are performed over $op("GF")(2^8)$ with the primitive polynomial $m(x)$.
 
 The primitive polynomial is:
 
 $ m(x) = x^8 + x^6 + x^5 + x^4 + 1 $
 
 == S-Box
-In NarrowWay, each round has its own key-dependent S-Box, which is generated over $op("GF")(2^8)$ by the round key dynamically.
+In NarrowWay, each row of each round has its own key-dependent S-Boxes Matrix ($op("Sm")_i$) conataining several S-Boxes (4 for 256 bits, 6 for 384 bits, and 8 for 512 bits).
 
-Calculate every byte's multiple inverse of the range from 0 to 255, then we can get the pre-S-Box ($S_0$):
+*S-Boxes Matrix for certain round of NarrowWay-256*
 
-$ f(x) dot f^(-1)(x) eq.triple 1 (mod m(x)) $
+$ op("Sg") = mat(
+  S_1;
+  S_2;
+  S_3;
+  S_4;
+)$
+
+A S-Box s generated over $op("GF")(2^8)$ by the round key dynamically.
+
+Calculate every byte's multiple inverse of the range over $op("GF")(2^8)$ from 0 to 255, then we can get the pre-S-Box ($S_0$):
 
 $ S_0 = mat(0, 1, 2, ..., 255;
 0^(-1), 1^(-1), 2^(-1), ..., 255^(-1); delim: "(") $
@@ -209,9 +106,9 @@ $ b_i^' = b_i xor b_(2 + i mod 8) xor b_(4 + i mod 8) xor b_(6 + i mod 8) xor b_
 
 Where $B_i$ is any byte in $S_0(i)$, and $C$ is a key based byte in order to generate different S-Boxes for each round.
 
-For generating $C$, we can digest a special byte in a round key ($R$) to use in generating S-Box like this:
+For generating $C_i$ for row $i$, we can digest a special byte in a round key ($R$) to use in generating S-Box like this:
 
-$ C = max(R_0 xor R_1 xor R_2 xor ... R_15, 1) $
+$ C_i = max(R_0, 1) dot max(R_1, 1) dot max(R_2, 1) dot ... max(R_7, 1) $
 
 == Round key expansion
 Each round of NarrowWay has a unique round key, these round keys are expanded by the primary key.
@@ -237,36 +134,46 @@ An integral round for encryption conatains these following 3 steps:
 
 *Mix columns*
 
-The *Mix columns* step operates on the columns of the state, it cyclically shifts column 1 down one row, shifts column 2 down two rows, and shifts column 3 down three rows.
+The *Mix columns* step operates on the columns of the state, it cyclically shifts column $C$ down $C - 1 mod 4$ rows.
 
-The example of 128-bit state:
+The example of 256-bit state:
 
 $ 
-mat(b_(1,1), b_(1,2), b_(1,3), b_(1,4);
-b_(2,1), b_(2,2), b_(2,3), b_(2,4);
-b_(3,1), b_(3,2), b_(3,3), b_(3,4);
-b_(4,1), b_(4,2), b_(4,3), b_(4,4);)
+mat(b_(1,1), b_(1,2), b_(1,3), ..., b_(1,8);
+  b_(2,1), b_(2,2), b_(2,3), ..., b_(2,8);
+  b_(3,1), b_(3,2), b_(3,3), ..., b_(3,8);
+  b_(4,1), b_(4,2), b_(4,3), ..., b_(4,8);
+)
 ->
-mat(b_(1,1), b_(4,2), b_(3,3), b_(2,4);
-b_(2,1), b_(1,2), b_(4,3), b_(3,4);
-b_(3,1), b_(2,2), b_(1,3), b_(4,4);
-b_(4,1), b_(3,2), b_(2,3), b_(1,4);)
+mat(b_(1,1), b_(4,2), b_(3,3), ..., b_(2,8);
+  b_(2,1), b_(1,2), b_(4,3), ..., b_(3,8);
+  b_(3,1), b_(2,2), b_(1,3), ..., b_(4,8);
+  b_(4,1), b_(3,2), b_(2,3), ..., b_(1,8);
+)
  $
 
 *Sub bytes*
 
 The *Sub bytes* step substitutes each elements in the state using the round S-Box.
 
-$ M_(i, j)^' = S(M_(i, j)) $
+$ M^' = mat(S_1(b_0, b_1, .., b_7, K_0, K_1, ..., K_7);
+  S_2(b_8, b_9, .., b_15, K_8, K_9, ..., K_15);
+  dots.v;
+  S_4(b_24, b_25, .., b_31, K_24, K_25, ..., K_31);
+  dots.v;
+  S_6(b_40, b_41, .., b_47, K_40, K_41, ..., K_47);
+  dots.v;
+  S_8(b_56, b_57, .., b_63, K_56, K_57, ..., K_63)) $
 
 *Apply round key*
 
 The *Apply round key* step applies the round key on each row of the state with function $F$.
 
-$ b_(i,0)^', b_(i,1)^', b_(i,2)^', b_(i,3)^' = F(b_(i,0), b_(i,1), b_(i,2), b_(i,3), K_(i,0), K_(i,1), K_(i,2), K_(i,3)) $
-
-$ i = cases(
-  [0, 1, 2, 3] italic("if") "key lenth" = 128 "bits",
-  [0, 1, 2, 3, 4, 5] italic("if") "key lenth" = 256 "bits",
-  [0, 1, 2, 3, 4, 5, 6, 7] italic("if") "key lenth" = 256 "bits"
-) $
+$ M^' = mat(F(b_0, b_1, .., b_7, K_0, K_1, ..., K_7);
+  F(b_8, b_9, .., b_15, K_8, K_9, ..., K_15);
+  dots.v;
+  F(b_24, b_25, .., b_31, K_24, K_25, ..., K_31);
+  dots.v;
+  F(b_40, b_41, .., b_47, K_40, K_41, ..., K_47);
+  dots.v;
+  F(b_56, b_57, .., b_63, K_56, K_57, ..., K_63)) $
