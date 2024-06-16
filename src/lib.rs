@@ -1,3 +1,5 @@
+include!(concat!(env!("OUT_DIR"), "/s0.rs"));
+
 mod exports;
 
 const ROUND_256: usize = 16;
@@ -144,7 +146,7 @@ fn gf_mul_inv(f: u8, m: u8) -> u8 {
     0
 }
 
-fn bit_transform(b: u8, c: u8) -> u8 {
+fn bit_transform(b: u8) -> u8 {
     let mut bit_array = [0; 8];
 
     for (i, bit) in bit_array.iter_mut().enumerate() {
@@ -165,7 +167,7 @@ fn bit_transform(b: u8, c: u8) -> u8 {
         b |= *bit << i;
     }
 
-    b ^ c
+    b
 }
 
 /** Calculate the round constant */
@@ -214,13 +216,34 @@ fn round_key_gen_512(key: &Key512, round: usize) -> Key512 {
     round_key
 }
 
-/** Generate S-Box */
-fn s_box_gen(key: u8) -> SBox {
+/** Generate pre-S-Box */
+#[cfg(feature = "poc")]
+fn s0_gen() -> SBox {
     let mut s_box = [0; 256];
     for (i, byte) in s_box.iter_mut().enumerate() {
-        *byte = bit_transform(gf_mul_inv(i as u8, GF28_M), key);
+        *byte = bit_transform(gf_mul_inv(i as u8, GF28_M));
     }
     s_box
+}
+
+/** Generate S-Box */
+#[cfg(feature = "poc")]
+fn s_box_gen(key: u8) -> SBox {
+    let mut s0 = s0_gen();
+    for (i, byte) in s0.iter_mut().enumerate() {
+        *byte = bit_transform(gf_mul_inv(i as u8, GF28_M)) ^ key;
+    }
+    s0
+}
+
+/** Generate S-Box */
+#[cfg(not(feature = "poc"))]
+fn s_box_gen(key: u8) -> SBox {
+    let mut s0 = S0;
+    for (i, byte) in s0.iter_mut().enumerate() {
+        *byte = bit_transform(gf_mul_inv(i as u8, GF28_M)) ^ key;
+    }
+    s0
 }
 
 fn s_inv_gen(s_box: &SBox) -> SBox {
