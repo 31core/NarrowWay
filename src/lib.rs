@@ -1,4 +1,4 @@
-include!(concat!(env!("OUT_DIR"), "/s0.rs"));
+include!(concat!(env!("OUT_DIR"), "/constant.rs"));
 
 mod exports;
 
@@ -98,11 +98,13 @@ impl Matrix512 {
 }
 
 /** Addition on GF(2^8) */
+#[cfg(feature = "poc")]
 fn gf_add(f: u8, g: u8) -> u8 {
     f ^ g
 }
 
 /** Subtration on GF(2^8) */
+#[cfg(feature = "poc")]
 fn gf_sub(f: u8, g: u8) -> u8 {
     gf_add(f, g)
 }
@@ -111,6 +113,7 @@ fn gf_sub(f: u8, g: u8) -> u8 {
  *
  * Note: m is without x^8 nomial
  */
+#[cfg(feature = "poc")]
 fn gf_mul(f: u8, g: u8, m: u8) -> u8 {
     let mut cache = Vec::new();
     for i in 0..8 {
@@ -137,6 +140,13 @@ fn gf_mul(f: u8, g: u8, m: u8) -> u8 {
 }
 
 /** Multiple inverse on GF(2^8) */
+#[cfg(not(feature = "poc"))]
+fn gf_mul(f: u8, g: u8, _m: u8) -> u8 {
+    GF28_TABLE[f as usize][g as usize]
+}
+
+/** Multiple inverse on GF(2^8) */
+#[cfg(feature = "poc")]
 fn gf_mul_inv(f: u8, m: u8) -> u8 {
     for i in 0..256 {
         if gf_mul(f, i as u8, m) == 1 {
@@ -146,6 +156,13 @@ fn gf_mul_inv(f: u8, m: u8) -> u8 {
     0
 }
 
+/** Multiple inverse on GF(2^8) */
+#[cfg(not(feature = "poc"))]
+fn gf_mul_inv(f: u8, _m: u8) -> u8 {
+    GF28_INV[f as usize]
+}
+
+#[cfg(feature = "poc")]
 fn bit_transform(b: u8) -> u8 {
     let mut bit_array = [0; 8];
 
@@ -230,8 +247,8 @@ fn s0_gen() -> SBox {
 #[cfg(feature = "poc")]
 fn s_box_gen(key: u8) -> SBox {
     let mut s0 = s0_gen();
-    for (i, byte) in s0.iter_mut().enumerate() {
-        *byte = bit_transform(gf_mul_inv(i as u8, GF28_M)) ^ key;
+    for byte in &mut s0 {
+        *byte ^= key;
     }
     s0
 }
@@ -240,8 +257,8 @@ fn s_box_gen(key: u8) -> SBox {
 #[cfg(not(feature = "poc"))]
 fn s_box_gen(key: u8) -> SBox {
     let mut s0 = S0;
-    for (i, byte) in s0.iter_mut().enumerate() {
-        *byte = bit_transform(gf_mul_inv(i as u8, GF28_M)) ^ key;
+    for byte in &mut s0 {
+        *byte ^= key;
     }
     s0
 }
@@ -735,4 +752,9 @@ impl Cipher512 {
 
         mat.dump()
     }
+}
+
+#[test]
+fn test() {
+    println!("{:?}", Cipher256::new([0; 32]).encrypt([0; 32]));
 }

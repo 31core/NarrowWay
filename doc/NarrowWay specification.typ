@@ -102,14 +102,12 @@ mat(b^'_0; b^'_1; b^'_2; b^'_3; b^'_4; b^'_5; b^'_6; b^'_7) $
 
 In other words, the matrix operation can be expressed as:
 
-$ B_i = (b_7, b_6, b_5, b_4, b_3, b_2, b_1, b_0) $
-$ C = (c_7, c_6, c_5, c_4, c_3, c_2, c_1, c_0) $
-$ b_i^' = b_i xor b_(2 + i mod 8) xor b_(4 + i mod 8) xor b_(6 + i mod 8) xor b_(7 + i mod 8) xor c_i $
-
-Where $B_i$ is any byte in $S_0(i)$, and $C$ is a key based byte in order to generate different S-Boxes for each round.
+$ b_i^' = b_i xor b_(2 + i mod 8) xor b_(4 + i mod 8) xor b_(6 + i mod 8) xor b_(7 + i mod 8) $
 
 === Generate key dependent S-Boxes
-For generating $S_i$ for row $i$, digest a specific byte ($C_i$) in a round key ($R$) at row $i$ ($R_0$, $R_1$, $R_2$, $R_3$, $R_4$, $R_5$, $R_6$ and $R_7$):
+Each round has several S-Boxes, here we mark S-Box for row $i$ as $S_i$.
+
+For generating $S_i$, digest a specific byte ($C_i$) in a round key ($R$) at row $i$ ($R_0$, $R_1$, $R_2$, $R_3$, $R_4$, $R_5$, $R_6$ and $R_7$):
 
 $ C_i = max(R_0, 1) dot max(R_1, 1) dot max(R_2, 1) dot ... max(R_7, 1) $
 
@@ -162,14 +160,14 @@ mat(b_(1,1), b_(4,2), b_(3,3), ..., b_(2,8);
 
 The *Sub bytes* step substitutes each elements in the state using the round S-Box.
 
-$ M^' = mat(S_1(b_0, b_1, .., b_7, K_0, K_1, ..., K_7);
-  S_2(b_8, b_9, .., b_15, K_8, K_9, ..., K_15);
-  dots.v;
-  S_4(b_24, b_25, .., b_31, K_24, K_25, ..., K_31);
-  dots.v;
-  S_6(b_40, b_41, .., b_47, K_40, K_41, ..., K_47);
-  dots.v;
-  S_8(b_56, b_57, .., b_63, K_56, K_57, ..., K_63)) $
+$ M^' = mat(S_1(b_0), S_1(b_1), .., S_1(b_7);
+  S_2(b_8), S_2(b_9), .., S_2(b_15);
+  dots.v, dots.v, dots.down, dots.v;
+  S_4(b_24), S_4(b_25), .., S_4(b_31);
+  dots.v, dots.v, dots.down, dots.v;
+  S_6(b_40), S_6(b_41), .., S_6(b_47);
+  dots.v, dots.v, dots.down, dots.v;
+  S_8(b_56), S_8(b_57), .., S_8(b_63)) $
 
 *Apply round key*
 

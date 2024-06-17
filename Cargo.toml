@@ -2,10 +2,13 @@
 name = "narrowway"
 version = "0.1.0"
 edition = "2021"
-authors = ["31core 31core@tutanota.com"]
+authors = ["31core <31core@tutanota.com>"]
 license = "MIT"
 
 [lib]
 crate-type = ["rlib", "cdylib"]
+
+[features]
+poc = []
 
 [dependencies]

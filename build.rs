@@ -54,17 +54,59 @@ fn gf_mul_inv(f: u8, m: u8) -> u8 {
     0
 }
 
+fn bit_transform(b: u8) -> u8 {
+    let mut bit_array = [0; 8];
+
+    for (i, bit) in bit_array.iter_mut().enumerate() {
+        *bit = (b >> i) & 1;
+    }
+
+    let mut result = [0; 8];
+    for i in 0..8 {
+        result[i] = bit_array[i]
+            ^ bit_array[(i + 2) % 8]
+            ^ bit_array[(i + 4) % 8]
+            ^ bit_array[(i + 6) % 8]
+            ^ bit_array[(i + 7) % 8];
+    }
+
+    let mut b = 0;
+    for (i, bit) in result.iter().enumerate() {
+        b |= *bit << i;
+    }
+
+    b
+}
+
 fn main() -> std::io::Result<()> {
     let out_dir = env::var("OUT_DIR").unwrap();
-    let path = Path::new(&out_dir).join("s0.rs");
+    let path = Path::new(&out_dir).join("constant.rs");
 
     let mut s0 = [0; 256];
     for (i, byte) in s0.iter_mut().enumerate() {
+        *byte = bit_transform(gf_mul_inv(i as u8, GF28_M));
+    }
+
+    let mut gf28_inv = [0; 256];
+    for (i, byte) in gf28_inv.iter_mut().enumerate() {
         *byte = gf_mul_inv(i as u8, GF28_M);
     }
 
+    let mut gf28_table = [[0; 256]; 256];
+    for (f, row) in gf28_table.iter_mut().enumerate() {
+        for (g, item) in row.iter_mut().enumerate() {
+            *item = gf_mul(f as u8, g as u8, GF28_M);
+        }
+    }
+
     let mut f = File::create(path).unwrap();
-    write!(f, "pub const S0: [u8; 256] = {:?};", s0)?;
+    writeln!(f, "pub const S0: [u8; 256] = {:?};", s0)?;
+    writeln!(f, "pub const GF28_INV: [u8; 256] = {:?};", gf28_inv)?;
+    writeln!(
+        f,
+        "pub const GF28_TABLE: [[u8; 256]; 256] = {:?};",
+        gf28_table
+    )?;
     println!("cargo:return-if-changed=build.rs");
 
     Ok(())
