@@ -65,7 +65,7 @@ The primitive polynomial is:
 $ m(x) = x^8 + x^6 + x^5 + x^4 + 1 $
 
 == S-Box
-In NarrowWay, each round has its own key-dependent S-Boxes set (defined as $op("Sg")$) containing several S-Boxes and the number of S-Boxes in the set depends on the block size (4 for 256-bit, 6 for 384-bit, and 8 for 512-bit), for example $op("Sg")$ containing 4 S-Boxes ($S_1$ ,$S_2$, $S_3$ and $S_4$). We call $S_i$ as any S-Box in $op("Sg")$ ($i$ is row number), wich will be mentioned below.
+In NarrowWay, each round has its own key-dependent S-Boxes set (defined as $op("Sg")$) containing several S-Boxes and the number of S-Boxes in the set depends on the block size (4 for 256-bit, 6 for 384-bit, and 8 for 512-bit), for example $op("Sg")$ containing four S-Boxes ($S_1$ ,$S_2$, $S_3$ and $S_4$). We call $S_i$ as any S-Box in $op("Sg")$ ($i$ is row number), wich will be mentioned below.
 
 #figure($ op("Sg") = mat(
   S_1;
@@ -73,8 +73,6 @@ In NarrowWay, each round has its own key-dependent S-Boxes set (defined as $op("
   S_3;
   S_4;
 ) $, caption: [S-Boxes Matrix for certain round of NarrowWay-256])
-
-$op("Sg")$ is utilized to substitute a row of elements in the matrix ($M_(i,n)$).
 
 === Generate pre-S-Box
 *Calculate multiple inverse*

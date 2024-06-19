@@ -10,6 +10,7 @@ There is an official Rust implementation providing basical functions for encrypt
 |--------|---------|
 |Rust    |Native   |
 |C       |Shared library|
+|Python  |ctypes   |
 
 ## Specification
 

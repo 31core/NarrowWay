@@ -16,6 +16,18 @@ type Block256 = [u8; 32];
 type Block384 = [u8; 48];
 type Block512 = [u8; 64];
 
+macro_rules! reverse_col {
+    ($mat: expr, $col: expr, $start: expr, $end: expr) => {
+        let mut start = $start;
+        let mut end = $end;
+        while end > start {
+            ($mat[start][$col], $mat[end - 1][$col]) = ($mat[end - 1][$col], $mat[start][$col]);
+            start += 1;
+            end -= 1;
+        }
+    };
+}
+
 #[derive(Debug)]
 struct Matrix256([[u8; 8]; 4]);
 
@@ -40,6 +52,33 @@ impl Matrix256 {
         }
 
         bytes
+    }
+    fn shift_down(&mut self, col: usize, step: usize) {
+        reverse_col!(self.0, col, 0, 4 - step);
+        reverse_col!(self.0, col, 4 - step, 4);
+        reverse_col!(self.0, col, 0, 4);
+    }
+    fn mix_columns(&mut self) {
+        for col in 1..8 {
+            let step = col % 4;
+
+            if step == 0 {
+                continue;
+            }
+
+            self.shift_down(col, step);
+        }
+    }
+    fn mix_columns_inv(&mut self) {
+        for col in 1..8 {
+            let step = (8 - col) % 4;
+
+            if step == 0 {
+                continue;
+            }
+
+            self.shift_down(col, step);
+        }
     }
 }
 
@@ -68,6 +107,33 @@ impl Matrix384 {
 
         bytes
     }
+    fn shift_down(&mut self, col: usize, step: usize) {
+        reverse_col!(self.0, col, 0, 6 - step);
+        reverse_col!(self.0, col, 6 - step, 6);
+        reverse_col!(self.0, col, 0, 6);
+    }
+    fn mix_columns(&mut self) {
+        for col in 1..8 {
+            let step = col % 6;
+
+            if step == 0 {
+                continue;
+            }
+
+            self.shift_down(col, step);
+        }
+    }
+    fn mix_columns_inv(&mut self) {
+        for col in 1..8 {
+            let step = (8 - col) % 6;
+
+            if step == 0 {
+                continue;
+            }
+
+            self.shift_down(col, step);
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -94,6 +160,25 @@ impl Matrix512 {
         }
 
         bytes
+    }
+    fn shift_down(&mut self, col: usize, step: usize) {
+        reverse_col!(self.0, col, 0, 8 - step);
+        reverse_col!(self.0, col, 8 - step, 8);
+        reverse_col!(self.0, col, 0, 8);
+    }
+    fn mix_columns(&mut self) {
+        for col in 1..8 {
+            let step = col;
+
+            self.shift_down(col, step);
+        }
+    }
+    fn mix_columns_inv(&mut self) {
+        for col in 1..8 {
+            let step = 8 - col;
+
+            self.shift_down(col, step);
+        }
     }
 }
 
@@ -263,6 +348,7 @@ fn s_box_gen(key: u8) -> SBox {
     s0
 }
 
+/** Generate Inverse S-Box */
 fn s_inv_gen(s_box: &SBox) -> SBox {
     let mut s_inv = [0; 256];
 
@@ -271,116 +357,6 @@ fn s_inv_gen(s_box: &SBox) -> SBox {
     }
 
     s_inv
-}
-
-fn mix_columns_256(mat: &mut Matrix256) {
-    for col in 1..8 {
-        let off = (8 - col) % 4;
-
-        if off == 0 {
-            continue;
-        }
-
-        for j in 0..off / 2 {
-            (mat.0[j][col], mat.0[off - 1 - j][col]) = (mat.0[off - 1 - j][col], mat.0[j][col]);
-        }
-        for j in off..2 + off / 2 {
-            (mat.0[j][col], mat.0[3 + off - j][col]) = (mat.0[3 + off - j][col], mat.0[j][col]);
-        }
-        for j in 0..2 {
-            (mat.0[j][col], mat.0[3 - j][col]) = (mat.0[3 - j][col], mat.0[j][col]);
-        }
-    }
-}
-
-fn mix_columns_384(mat: &mut Matrix384) {
-    for col in 1..8 {
-        let off = (8 - col) % 6;
-
-        if off == 0 {
-            continue;
-        }
-
-        for j in 0..off / 2 {
-            (mat.0[j][col], mat.0[off - 1 - j][col]) = (mat.0[off - 1 - j][col], mat.0[j][col]);
-        }
-        for j in off..3 + off / 2 {
-            (mat.0[j][col], mat.0[5 + off - j][col]) = (mat.0[5 + off - j][col], mat.0[j][col]);
-        }
-        for j in 0..3 {
-            (mat.0[j][col], mat.0[5 - j][col]) = (mat.0[5 - j][col], mat.0[j][col]);
-        }
-    }
-}
-
-fn mix_columns_512(mat: &mut Matrix512) {
-    for col in 1..8 {
-        let off = 8 - col;
-        for j in 0..off / 2 {
-            (mat.0[j][col], mat.0[off - 1 - j][col]) = (mat.0[off - 1 - j][col], mat.0[j][col]);
-        }
-        for j in off..4 + off / 2 {
-            (mat.0[j][col], mat.0[7 + off - j][col]) = (mat.0[7 + off - j][col], mat.0[j][col]);
-        }
-        for j in 0..4 {
-            (mat.0[j][col], mat.0[7 - j][col]) = (mat.0[7 - j][col], mat.0[j][col]);
-        }
-    }
-}
-
-fn mix_columns_inv_256(mat: &mut Matrix256) {
-    for col in 1..8 {
-        let off = col % 4;
-
-        if off == 0 {
-            continue;
-        }
-
-        for j in 0..off / 2 {
-            (mat.0[j][col], mat.0[off - 1 - j][col]) = (mat.0[off - 1 - j][col], mat.0[j][col]);
-        }
-        for j in off..2 + off / 2 {
-            (mat.0[j][col], mat.0[3 + off - j][col]) = (mat.0[3 + off - j][col], mat.0[j][col]);
-        }
-        for j in 0..2 {
-            (mat.0[j][col], mat.0[3 - j][col]) = (mat.0[3 - j][col], mat.0[j][col]);
-        }
-    }
-}
-
-fn mix_columns_inv_384(mat: &mut Matrix384) {
-    for col in 1..8 {
-        let off = col % 6;
-
-        if off == 0 {
-            continue;
-        }
-
-        for j in 0..off / 2 {
-            (mat.0[j][col], mat.0[off - 1 - j][col]) = (mat.0[off - 1 - j][col], mat.0[j][col]);
-        }
-        for j in off..3 + off / 2 {
-            (mat.0[j][col], mat.0[5 + off - j][col]) = (mat.0[5 + off - j][col], mat.0[j][col]);
-        }
-        for j in 0..3 {
-            (mat.0[j][col], mat.0[5 - j][col]) = (mat.0[5 - j][col], mat.0[j][col]);
-        }
-    }
-}
-
-fn mix_columns_inv_512(mat: &mut Matrix512) {
-    for col in 1..8 {
-        let off = col;
-        for j in 0..off / 2 {
-            (mat.0[j][col], mat.0[off - 1 - j][col]) = (mat.0[off - 1 - j][col], mat.0[j][col]);
-        }
-        for j in off..4 + off / 2 {
-            (mat.0[j][col], mat.0[7 + off - j][col]) = (mat.0[7 + off - j][col], mat.0[j][col]);
-        }
-        for j in 0..4 {
-            (mat.0[j][col], mat.0[7 - j][col]) = (mat.0[7 - j][col], mat.0[j][col]);
-        }
-    }
 }
 
 fn sub_bytes_256(s_boxes: &[SBox; 4], mat: &mut Matrix256) {
@@ -599,7 +575,7 @@ impl Cipher256 {
         let mut mat = Matrix256::new(block);
 
         for round in 0..ROUND_256 {
-            mix_columns_256(&mut mat);
+            mat.mix_columns();
             sub_bytes_256(&self.s_boxes[round], &mut mat);
             apply_round_256(&mut mat, &self.round_keys[round]);
         }
@@ -613,7 +589,7 @@ impl Cipher256 {
         for round in (0..ROUND_256).rev() {
             apply_round_inv_256(&mut mat, &self.round_keys[round]);
             sub_bytes_inv_256(&self.s_inves[round], &mut mat);
-            mix_columns_inv_256(&mut mat);
+            mat.mix_columns_inv();
         }
 
         mat.dump()
@@ -666,7 +642,7 @@ impl Cipher384 {
         let mut mat = Matrix384::new(block);
 
         for round in 0..ROUND_384 {
-            mix_columns_384(&mut mat);
+            mat.mix_columns();
             sub_bytes_384(&self.s_boxes[round], &mut mat);
             apply_round_384(&mut mat, &self.round_keys[round]);
         }
@@ -680,7 +656,7 @@ impl Cipher384 {
         for round in (0..ROUND_384).rev() {
             apply_round_inv_384(&mut mat, &self.round_keys[round]);
             sub_bytes_inv_384(&self.s_inves[round], &mut mat);
-            mix_columns_inv_384(&mut mat);
+            mat.mix_columns_inv();
         }
 
         mat.dump()
@@ -733,7 +709,7 @@ impl Cipher512 {
         let mut mat = Matrix512::new(block);
 
         for round in 0..ROUND_512 {
-            mix_columns_512(&mut mat);
+            mat.mix_columns();
             sub_bytes_512(&self.s_boxes[round], &mut mat);
             apply_round_512(&mut mat, &self.round_keys[round]);
         }
@@ -747,14 +723,9 @@ impl Cipher512 {
         for round in (0..ROUND_512).rev() {
             apply_round_inv_512(&mut mat, &self.round_keys[round]);
             sub_bytes_inv_512(&self.s_inves[round], &mut mat);
-            mix_columns_inv_512(&mut mat);
+            mat.mix_columns_inv();
         }
 
         mat.dump()
     }
-}
-
-#[test]
-fn test() {
-    println!("{:?}", Cipher256::new([0; 32]).encrypt([0; 32]));
 }
