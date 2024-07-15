@@ -128,15 +128,15 @@ $ cases( R_0 = op("RC")[r] xor (K_0 <<< 4)^(-1) (r = 0, 1, 2, ...),
 Where $K$ is the previous round key ($K$ is the primary key when $r$ is equal to 0), and $R$ is the current round key
 
 == Round
-An integral round for encryption consists of these following three steps, $M^'$ is defined as operated state, $b_(i,j)$ is defined as byte at column i and row j in the original state below:
+An integral round for encryption consists of these following three steps, $M^'$ is defined as the state after certain operate, $b_(i,j)$ is defined as byte at column i and row j in the original state below:
 
-+ Mix columns
++ Shift columns
 + Sub bytes
 + Apply round key
  
-*Mix columns*
+*Shift columns*
 
-The *Mix columns* step operates on the columns of the state, it cyclically shifts column $C$ down $C - 1 mod 4$ rows.
+The *Shift columns* step operates on the columns of the state, it cyclically shifts column $C$ ($C$ ranges from 1 to 8) down $C - 1 mod 4$ rows.
 
 The example of 256-bit state:
 
