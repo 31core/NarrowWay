@@ -285,10 +285,10 @@ fn rc(i: usize) -> u8 {
 fn round_key_gen_256(key: &Key256, round: usize) -> Key256 {
     let mut round_key = [0; 32];
 
-    round_key[0] = gf_mul_inv(shl(key[0], 4), GF28_M) ^ rc(round);
+    round_key[0] = gf_mul_inv(key[0].rotate_left(4), GF28_M) ^ rc(round);
 
     for i in 1..32 {
-        round_key[i] = gf_mul_inv(shl(key[i], 4), GF28_M) ^ round_key[i - 1];
+        round_key[i] = gf_mul_inv(key[i].rotate_left(4), GF28_M) ^ round_key[i - 1];
     }
 
     round_key
@@ -297,10 +297,10 @@ fn round_key_gen_256(key: &Key256, round: usize) -> Key256 {
 fn round_key_gen_384(key: &Key384, round: usize) -> Key384 {
     let mut round_key = [0; 48];
 
-    round_key[0] = gf_mul_inv(shl(key[0], 4), GF28_M) ^ rc(round);
+    round_key[0] = gf_mul_inv(key[0].rotate_left(4), GF28_M) ^ rc(round);
 
     for i in 1..48 {
-        round_key[i] = gf_mul_inv(shl(key[i], 4), GF28_M) ^ round_key[i - 1];
+        round_key[i] = gf_mul_inv(key[i].rotate_left(4), GF28_M) ^ round_key[i - 1];
     }
 
     round_key
@@ -309,10 +309,10 @@ fn round_key_gen_384(key: &Key384, round: usize) -> Key384 {
 fn round_key_gen_512(key: &Key512, round: usize) -> Key512 {
     let mut round_key = [0; 64];
 
-    round_key[0] = gf_mul_inv(shl(key[0], 4), GF28_M) ^ rc(round);
+    round_key[0] = gf_mul_inv(key[0].rotate_left(4), GF28_M) ^ rc(round);
 
     for i in 1..64 {
-        round_key[i] = gf_mul_inv(shl(key[i], 4), GF28_M) ^ round_key[i - 1];
+        round_key[i] = gf_mul_inv(key[i].rotate_left(4), GF28_M) ^ round_key[i - 1];
     }
 
     round_key
@@ -407,32 +407,24 @@ fn sub_bytes_inv_512(s_invs: &[SBox; 8], mat: &mut Matrix512) {
     }
 }
 
-fn shl(num: u8, offset: u32) -> u8 {
-    num.wrapping_shr(8 - offset) | (num << offset)
-}
-
-fn shr(num: u8, offset: u32) -> u8 {
-    num.wrapping_shl(8 - offset) | (num >> offset)
-}
-
 fn func_f(p: &mut [u8; 8], key: [u8; 8]) {
     p[1] ^= p[0] ^ p[2];
     p[6] ^= p[5] ^ p[7];
 
-    p[1] = shl(p[1], 3);
+    p[1] = p[1].rotate_left(3);
     p[2] ^= p[4];
-    p[6] = shr(p[6], 2);
+    p[6] = p[6].rotate_right(2);
 
-    p[2] = shl(p[2], 2);
+    p[2] = p[2].rotate_left(2);
     p[5] ^= p[3] ^ p[6];
 
-    p[4] = shr(p[4], 4);
+    p[4] = p[4].rotate_right(4);
 
     p[4] ^= p[1];
 
     p[3] ^= p[4] ^ p[7];
 
-    p[5] = shl(p[5], 1);
+    p[5] = p[5].rotate_left(1);
 
     p[0] ^= p[2];
     p[7] ^= p[5];
@@ -456,20 +448,20 @@ fn func_f_inv(p: &mut [u8; 8], key: [u8; 8]) {
     p[7] ^= p[5];
     p[0] ^= p[2];
 
-    p[5] = shr(p[5], 1);
+    p[5] = p[5].rotate_right(1);
 
     p[3] ^= p[4] ^ p[7];
 
     p[4] ^= p[1];
 
-    p[4] = shl(p[4], 4);
+    p[4] = p[4].rotate_left(4);
 
     p[5] ^= p[3] ^ p[6];
-    p[2] = shr(p[2], 2);
+    p[2] = p[2].rotate_right(2);
 
-    p[6] = shl(p[6], 2);
+    p[6] = p[6].rotate_left(2);
     p[2] ^= p[4];
-    p[1] = shr(p[1], 3);
+    p[1] = p[1].rotate_right(3);
 
     p[6] = p[5] ^ p[6] ^ p[7];
     p[1] = p[0] ^ p[1] ^ p[2];
