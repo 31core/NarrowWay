@@ -58,7 +58,7 @@ impl Matrix256 {
         reverse_col!(self.0, col, 4 - step, 4);
         reverse_col!(self.0, col, 0, 4);
     }
-    fn mix_columns(&mut self) {
+    fn shift_columns(&mut self) {
         for col in 1..8 {
             let step = col % 4;
 
@@ -69,7 +69,7 @@ impl Matrix256 {
             self.shift_down(col, step);
         }
     }
-    fn mix_columns_inv(&mut self) {
+    fn shift_columns_inv(&mut self) {
         for col in 1..8 {
             let step = (8 - col) % 4;
 
@@ -112,7 +112,7 @@ impl Matrix384 {
         reverse_col!(self.0, col, 6 - step, 6);
         reverse_col!(self.0, col, 0, 6);
     }
-    fn mix_columns(&mut self) {
+    fn shift_columns(&mut self) {
         for col in 1..8 {
             let step = col % 6;
 
@@ -123,7 +123,7 @@ impl Matrix384 {
             self.shift_down(col, step);
         }
     }
-    fn mix_columns_inv(&mut self) {
+    fn shift_columns_inv(&mut self) {
         for col in 1..8 {
             let step = (8 - col) % 6;
 
@@ -166,14 +166,14 @@ impl Matrix512 {
         reverse_col!(self.0, col, 8 - step, 8);
         reverse_col!(self.0, col, 0, 8);
     }
-    fn mix_columns(&mut self) {
+    fn shift_columns(&mut self) {
         for col in 1..8 {
             let step = col;
 
             self.shift_down(col, step);
         }
     }
-    fn mix_columns_inv(&mut self) {
+    fn shift_columns_inv(&mut self) {
         for col in 1..8 {
             let step = 8 - col;
 
@@ -274,12 +274,19 @@ fn bit_transform(b: u8) -> u8 {
 
 /** Calculate the round constant */
 fn rc(i: usize) -> u8 {
-    let mut byte = 2;
-    for _ in 0..(i + 2) {
-        byte = gf_mul(byte, 2, GF28_M);
-    }
+    #[cfg(feature = "poc")]
+    {
+        let mut byte = 2;
+        for _ in 0..(i + 2) {
+            byte = gf_mul(byte, 2, GF28_M);
+        }
 
-    byte
+        byte
+    }
+    #[cfg(not(feature = "poc"))]
+    {
+        RC[i]
+    }
 }
 
 fn round_key_gen_256(key: &Key256, round: usize) -> Key256 {
@@ -336,6 +343,17 @@ fn s_box_gen(key: u8) -> SBox {
         *byte ^= key;
     }
     s0
+}
+
+fn digest_key(key: &[u8]) -> u8 {
+    use std::cmp::max;
+    let mut byte = max(key[0], 1);
+
+    for i in key.iter().skip(1) {
+        byte = gf_mul(byte, max(*i, 1), GF28_M);
+    }
+
+    byte
 }
 
 /** Generate S-Box */
@@ -531,15 +549,6 @@ pub struct Cipher256 {
 
 impl Cipher256 {
     pub fn new(key: Key256) -> Self {
-        fn digest_key(key: &[u8]) -> u8 {
-            let mut byte = key[0];
-
-            for i in key.iter().skip(1) {
-                byte = gf_mul(byte, std::cmp::max(*i, 1), GF28_M);
-            }
-
-            byte
-        }
         let mut s_boxes = [[[0; 256]; 4]; ROUND_256];
         let mut s_inves = [[[0; 256]; 4]; ROUND_256];
         let mut round_keys = [[0; 32]; ROUND_256];
@@ -567,7 +576,7 @@ impl Cipher256 {
         let mut mat = Matrix256::new(block);
 
         for round in 0..ROUND_256 {
-            mat.mix_columns();
+            mat.shift_columns();
             sub_bytes_256(&self.s_boxes[round], &mut mat);
             apply_round_256(&mut mat, &self.round_keys[round]);
         }
@@ -581,7 +590,7 @@ impl Cipher256 {
         for round in (0..ROUND_256).rev() {
             apply_round_inv_256(&mut mat, &self.round_keys[round]);
             sub_bytes_inv_256(&self.s_inves[round], &mut mat);
-            mat.mix_columns_inv();
+            mat.shift_columns_inv();
         }
 
         mat.dump()
@@ -598,15 +607,6 @@ pub struct Cipher384 {
 
 impl Cipher384 {
     pub fn new(key: Key384) -> Self {
-        fn digest_key(key: &[u8]) -> u8 {
-            let mut byte = key[0];
-
-            for i in key.iter().skip(1) {
-                byte = gf_mul(byte, std::cmp::max(*i, 1), GF28_M);
-            }
-
-            byte
-        }
         let mut s_boxes = [[[0; 256]; 6]; ROUND_384];
         let mut s_inves = [[[0; 256]; 6]; ROUND_384];
         let mut round_keys = [[0; 48]; ROUND_384];
@@ -634,7 +634,7 @@ impl Cipher384 {
         let mut mat = Matrix384::new(block);
 
         for round in 0..ROUND_384 {
-            mat.mix_columns();
+            mat.shift_columns();
             sub_bytes_384(&self.s_boxes[round], &mut mat);
             apply_round_384(&mut mat, &self.round_keys[round]);
         }
@@ -648,7 +648,7 @@ impl Cipher384 {
         for round in (0..ROUND_384).rev() {
             apply_round_inv_384(&mut mat, &self.round_keys[round]);
             sub_bytes_inv_384(&self.s_inves[round], &mut mat);
-            mat.mix_columns_inv();
+            mat.shift_columns_inv();
         }
 
         mat.dump()
@@ -665,15 +665,6 @@ pub struct Cipher512 {
 
 impl Cipher512 {
     pub fn new(key: Key512) -> Self {
-        fn digest_key(key: &[u8]) -> u8 {
-            let mut byte = key[0];
-
-            for i in key.iter().skip(1) {
-                byte = gf_mul(byte, std::cmp::max(*i, 1), GF28_M);
-            }
-
-            byte
-        }
         let mut s_boxes = [[[0; 256]; 8]; ROUND_512];
         let mut s_inves = [[[0; 256]; 8]; ROUND_512];
         let mut round_keys = [[0; 64]; ROUND_512];
@@ -701,7 +692,7 @@ impl Cipher512 {
         let mut mat = Matrix512::new(block);
 
         for round in 0..ROUND_512 {
-            mat.mix_columns();
+            mat.shift_columns();
             sub_bytes_512(&self.s_boxes[round], &mut mat);
             apply_round_512(&mut mat, &self.round_keys[round]);
         }
@@ -715,7 +706,7 @@ impl Cipher512 {
         for round in (0..ROUND_512).rev() {
             apply_round_inv_512(&mut mat, &self.round_keys[round]);
             sub_bytes_inv_512(&self.s_inves[round], &mut mat);
-            mat.mix_columns_inv();
+            mat.shift_columns_inv();
         }
 
         mat.dump()

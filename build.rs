@@ -54,6 +54,16 @@ fn gf_mul_inv(f: u8, m: u8) -> u8 {
     0
 }
 
+/** Calculate the round constant */
+fn rc(i: usize) -> u8 {
+    let mut byte = 2;
+    for _ in 0..(i + 2) {
+        byte = gf_mul(byte, 2, GF28_M);
+    }
+
+    byte
+}
+
 fn bit_transform(b: u8) -> u8 {
     let mut bit_array = [0; 8];
 
@@ -99,6 +109,11 @@ fn main() -> std::io::Result<()> {
         }
     }
 
+    let mut rc_lis = [0; 32];
+    for (i, v) in rc_lis.iter_mut().enumerate() {
+        *v = rc(i);
+    }
+
     let mut f = File::create(path).unwrap();
     writeln!(f, "pub const S0: [u8; 256] = {:?};", s0)?;
     writeln!(f, "pub const GF28_INV: [u8; 256] = {:?};", gf28_inv)?;
@@ -107,6 +122,7 @@ fn main() -> std::io::Result<()> {
         "pub const GF28_TABLE: [[u8; 256]; 256] = {:?};",
         gf28_table
     )?;
+    writeln!(f, "pub const RC: [u8; 32] = {:?};", rc_lis)?;
     println!("cargo:return-if-changed=build.rs");
 
     Ok(())

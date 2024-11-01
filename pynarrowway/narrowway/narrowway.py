@@ -20,6 +20,8 @@ class Cipher256:
         for i in range(32):
             key_raw[i] = key[i]
         self.cipher = new_cipher_256(key_raw)
+    def __del__(self) -> None:
+        free_cipher_256(self.cipher)
     def encrypt(self, bytes: bytes) -> bytes:
         data_in = (ctypes.c_uint8 * 32)()
         data_out = (ctypes.c_uint8 * 32)()
@@ -51,6 +53,8 @@ class Cipher384:
         for i in range(48):
             key_raw[i] = key[i]
         self.cipher = new_cipher_384(key_raw)
+    def __del__(self) -> None:
+        free_cipher_384(self.cipher)
     def encrypt(self, bytes: bytes) -> bytes:
         data_in = (ctypes.c_uint8 * 48)()
         data_out = (ctypes.c_uint8 * 48)()
@@ -77,11 +81,13 @@ class Cipher384:
         return bytes
 
 class Cipher512:
-    def __init__(self, key) -> None:
+    def __init__(self, key: bytes) -> None:
         key_raw = (ctypes.c_uint8 * 64)()
         for i in range(64):
             key_raw[i] = key[i]
         self.cipher = new_cipher_512(key_raw)
+    def __del__(self) -> None:
+        free_cipher_512(self.cipher)
     def encrypt(self, bytes: bytes) -> bytes:
         data_in = (ctypes.c_uint8 * 64)()
         data_out = (ctypes.c_uint8 * 64)()
@@ -109,18 +115,21 @@ class Cipher512:
 
 new_cipher_256 = clib.new_cipher_256
 new_cipher_256.restype = ctypes.POINTER(ctypes.c_void_p)
+free_cipher_256 = clib.free_cipher_256
 
 nw_encrypt_256 = clib.nw_encrypt_256
 nw_decrypt_256 = clib.nw_decrypt_256
 
 new_cipher_384 = clib.new_cipher_384
 new_cipher_384.restype = ctypes.POINTER(ctypes.c_void_p)
+free_cipher_384 = clib.free_cipher_384
 
 nw_encrypt_384 = clib.nw_encrypt_384
 nw_decrypt_384 = clib.nw_decrypt_384 
 
 new_cipher_512 = clib.new_cipher_512
 new_cipher_512.restype = ctypes.POINTER(ctypes.c_void_p)
+free_cipher_512 = clib.free_cipher_512
 
 nw_encrypt_512 = clib.nw_encrypt_512
 nw_decrypt_512 = clib.nw_decrypt_512
