@@ -1,4 +1,5 @@
 from setuptools import setup, find_packages
+from Cython.Build import cythonize
 import platform
 
 if platform.system() == "Darwin":
@@ -19,5 +20,6 @@ setup(
 
     packages=find_packages(),
     include_package_data=True,
-    package_data={"narrowway": [dll_name]}
+    package_data={"narrowway": [dll_name]},
+    ext_modules=cythonize("narrowway/*.pyx"),
 )

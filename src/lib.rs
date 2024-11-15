@@ -125,7 +125,7 @@ impl Matrix384 {
     }
     fn shift_columns_inv(&mut self) {
         for col in 1..8 {
-            let step = (8 - col) % 6;
+            let step = (12 - col) % 6;
 
             if step == 0 {
                 continue;

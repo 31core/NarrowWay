@@ -4,6 +4,10 @@ typedef void *Cipher256;
 typedef void *Cipher384;
 typedef void *Cipher512;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 Cipher256 new_cipher_256(uint8_t *);
 void free_cipher_256(uint8_t *);
 void nw_encrypt_256(Cipher256, uint8_t *, uint8_t *);
@@ -16,3 +20,7 @@ Cipher512 new_cipher_512(uint8_t *);
 void free_cipher_512(uint8_t *);
 void nw_encrypt_512(Cipher512, uint8_t *, uint8_t *);
 void nw_decrypt_512(Cipher256, uint8_t *, uint8_t *);
+
+#ifdef __cplusplus
+}
+#endif

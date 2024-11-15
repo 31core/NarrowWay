@@ -9,7 +9,7 @@ license = "MIT"
 opt-level = 3
 
 [lib]
-crate-type = ["rlib", "cdylib"]
+crate-type = ["rlib", "cdylib", "staticlib"]
 
 [features]
 poc = []
