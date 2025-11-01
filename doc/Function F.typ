@@ -1,4 +1,4 @@
-#import "@preview/fletcher:0.5.2" as fletcher: node, edge
+#import "@preview/fletcher:0.5.5" as fletcher: node, edge
 
 #let func_img = [#fletcher.diagram(
   node((0, 0), $P_0$),
@@ -39,8 +39,9 @@
   node((5, 5), $<<< 1$),
 
   /* line 6 */
-  edge((4, 6), (3, 6), "*-|>"),
-  edge((7, 6), (4, 6), "*-"),
+  edge((4, 5.5), (3.5, 5.5), "*-"),
+  edge((3.5, 5.5), (3, 6), "-|>"),
+  edge((7, 6), (3, 6), "*-|>"),
   node((3, 6), $xor$),
 
   /* line 7 */

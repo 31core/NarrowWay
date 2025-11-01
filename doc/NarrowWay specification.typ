@@ -1,4 +1,5 @@
 #import "Function F.typ": func_img
+#import "@preview/fletcher:0.5.8" as fletcher: node, edge
 
 #set page(numbering: "1")
 #set par(justify: true)
@@ -82,7 +83,7 @@ In NarrowWay, each round has its own round-key-dependent S-Boxes matrix (defined
 Calculate every byte's multiple inverse of the range over $op("GF")(2^8)$ from 0 to 255, then do a *bits substitute* step for each byte to obtain the pre-S-Box (defined as $S_0$):
 
 $ S^'_0 = mat(0, 1, 2, ..., 255;
-0^(-1), 1^(-1), 2^(-1), ..., 255^(-1); delim: "(") $
+0, 1^(-1), 2^(-1), ..., 255^(-1); delim: "(") $
 
 *Bits substitute*
 
@@ -127,7 +128,7 @@ $ cases( R_0 = op("RC")[r] xor (K_0 <<< 4)^(-1) (r = 0, 1, 2, ...),
   R_i = R_(i - 1) xor (K_i <<< 4)^(-1) (i = 1, 2, ...)
 ) $
 
-Where $K$ is the previous round key ($K$ is the primary key when $r$ is equal to 0), and $R$ is the current round key
+Where $K$ is the previous round key ($K$ is the primary key when $r$ is equal to 0), and $R$ is the current round key.
 
 == Round
 Each key size has different count of rounds, higher key size has higner count, and the number of rounds for each key size is:
@@ -135,13 +136,35 @@ Each key size has different count of rounds, higher key size has higner count, a
 - 18 rounds for 384 bits
 - 20 rounds for 512 bits
 
-An integral round for encryption consists of following three steps, $M^'$ is defined as the state after certain operate, $b_(i,j)$ is defined as byte at column $i$ and row $j$ in the original state below:
+An integral round for encryption consists of following three steps: *ShiftColumns*, *SubstituteBytes* and *ApplyRoundKey*.
 
-+ ShiftColumns
-+ SubstituteBytes
-+ ApplyRoundKey
+#figure(caption: [One round of encryption])[
+#fletcher.diagram(
+  node-stroke: 0.5pt,
+  node((-1, -1), [Previous round or plaintext]),
+  edge((-1, -1), (-1, 0), "-|>"),
+  node((-1, 0), [Input]),
+  edge((-1, 0), (0, 0), "-|>"),
+  node((0, 0), [ShiftColumns]),
+  edge((0, 0), (0, 1), "-|>"),
+  node((0, 1), [SubstituteBytes]),
+  edge((0, 1), (0, 2), "-|>"),
+  node((0, 2), [ApplyRoundKey]),
+  node((1, 2), [Output]),
+  edge((0, 2), (1, 2), "-|>"),
+  node((1, 3), [Next round or ciphertext]),
+  edge((1, 2), (1, 3), "-|>"),
 
-*ShiftColumns*
+  /* lines */
+  edge((-1.5, -0.5), (1.5, -0.5), "--"),
+  edge((-1.5, 2.5), (1.5, 2.5), "--"),
+  edge((-1.5,-0.5), (-1.5, 2.5), "--"),
+  edge((1.5,-0.5), (1.5, 2.5), "--"),
+)]
+
+$M^'$ is defined as the state after certain operate, $b_(i,j)$ is defined as byte at column $i$ and row $j$ in the original state below:
+
+=== ShiftColumns
 
 The *ShiftColumns* step operates on the columns of the matrix, it cyclically shifts column $C$ ($C$ ranges from 1 to 8) down $C - 1 mod 4$ rows.
 
@@ -161,28 +184,30 @@ mat(b_(1,1), b_(4,2), b_(3,3), ..., b_(2,8);
 )
 $
 
-*SubstituteBytes*
+=== SubstituteBytes
 
 The *SubstituteBytes* step substitutes each elements in the matrix using the round S-Box.
 
-$ M^' = mat(S_1(b_0), S_1(b_1), .., S_1(b_7);
-  S_2(b_8), S_2(b_9), .., S_2(b_15);
+$ M^' = mat(S_1(b_0), S_1(b_1), ..., S_1(b_7);
+  S_2(b_8), S_2(b_9), ..., S_2(b_15);
   dots.v, dots.v, dots.down, dots.v;
-  S_4(b_24), S_4(b_25), .., S_4(b_31);
+  S_4(b_24), S_4(b_25), ..., S_4(b_31);
   dots.v, dots.v, dots.down, dots.v;
-  S_6(b_40), S_6(b_41), .., S_6(b_47);
+  S_6(b_40), S_6(b_41), ..., S_6(b_47);
   dots.v, dots.v, dots.down, dots.v;
-  S_8(b_56), S_8(b_57), .., S_8(b_63)) $
+  S_8(b_56), S_8(b_57), ..., S_8(b_63)) $
 
-*ApplyRoundKey*
+=== ApplyRoundKey
 
 The *ApplyRoundKey* step applies the round key on each row of the matrix with function $F$.
 
-$ M^' = mat(F(b_0, b_1, .., b_7, K_0, K_1, ..., K_7);
-  F(b_8, b_9, .., b_15, K_8, K_9, ..., K_15);
+$ M^' = mat(F(b_0, b_1, ..., b_7, K_0, K_1, ..., K_7);
+  F(b_8, b_9, ..., b_15, K_8, K_9, ..., K_15);
   dots.v;
-  F(b_24, b_25, .., b_31, K_24, K_25, ..., K_31);
+  F(b_24, b_25, ..., b_31, K_24, K_25, ..., K_31);
   dots.v;
-  F(b_40, b_41, .., b_47, K_40, K_41, ..., K_47);
+  F(b_40, b_41, ..., b_47, K_40, K_41, ..., K_47);
   dots.v;
-  F(b_56, b_57, .., b_63, K_56, K_57, ..., K_63)) $
+  F(b_56, b_57, ..., b_63, K_56, K_57, ..., K_63)) $
+
+#include "Examples.typ"

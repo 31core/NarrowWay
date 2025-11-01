@@ -1,7 +1,4 @@
-use std::env;
-use std::fs::File;
-use std::io::Write;
-use std::path::Path;
+use std::{env, fs::File, io::Write, path::Path};
 
 const GF28_M: u8 = 0b1110001;
 
@@ -119,7 +116,7 @@ fn main() -> std::io::Result<()> {
     writeln!(f, "pub const GF28_INV: [u8; 256] = {:?};", gf28_inv)?;
     writeln!(
         f,
-        "pub const GF28_TABLE: [[u8; 256]; 256] = {:?};",
+        "pub static GF28_TABLE: [[u8; 256]; 256] = {:?};",
         gf28_table
     )?;
     writeln!(f, "pub const RC: [u8; 32] = {:?};", rc_lis)?;
